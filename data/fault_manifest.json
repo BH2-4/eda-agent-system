@@ -1,0 +1,69 @@
+{
+  "version": "0.1.0",
+  "bugs": [
+    {
+      "name": "adder_pipe_bitwidth",
+      "fault_type": "bitwidth",
+      "healable": true,
+      "top_module": "adder_pipe",
+      "ground_truth_patch": "reg [7:0] sum -> reg [8:0] sum + output [8:0]",
+      "description": "Pipelined adder output sum is declared 8 bits wide ([7:0]) instead of the required 9 bits ([8:0]) to hold the full a+b range (max 511). For inputs a=200, b=200 the correct sum is 400, but the 8-bit register wraps modulo 256 yielding 144. Widening sum to [8:0] (and the output port accordingly) eliminates the overflow."
+    },
+    {
+      "name": "adder_pipe_comb",
+      "fault_type": "comb_logic",
+      "healable": true,
+      "top_module": "adder_pipe_comb",
+      "ground_truth_patch": "case 末尾补 default: y = 9'd0;",
+      "description": "组合逻辑加/减法器, case(sel) 缺少 default 分支。sel=2/3 时综合出 latch, y 保持旧值而非归零。修复: 在 case 末尾补 default: y = 0;。"
+    },
+    {
+      "name": "adder_pipe_syntax",
+      "fault_type": "syntax",
+      "healable": true,
+      "top_module": "adder",
+      "ground_truth_patch": "a +* b -> a + b",
+      "description": "Adder with illegal operator +* in expression. RTL fails to compile under iverilog (syntax error). Standard adder testbench detects sum==30."
+    },
+    {
+      "name": "counter_bitwidth",
+      "fault_type": "bitwidth",
+      "healable": true,
+      "top_module": "counter",
+      "ground_truth_patch": "reg [3:0] count → reg [7:0] count",
+      "description": "8-bit counter has its count register declared as only 4 bits wide ([3:0]), so it wraps at 15 instead of counting up to 200 as an 8-bit counter should."
+    },
+    {
+      "name": "counter_reset",
+      "fault_type": "timing_reset",
+      "healable": true,
+      "top_module": "counter_reset",
+      "ground_truth_patch": "count<=8'hFF -> count<=8'd0",
+      "description": "8-bit counter reset value is wrong: synchronous reset assigns 0xFF instead of 0x00, so the counter starts at 255 instead of 0 after reset."
+    },
+    {
+      "name": "counter_syntax",
+      "fault_type": "syntax",
+      "healable": true,
+      "top_module": "counter",
+      "ground_truth_patch": "alwayss -> always (remove the extra 's')",
+      "description": "counter 计数器语法 bug: 'always @(posedge clk)' 被错拼成 'alwayss @(posedge clk)'(多写一个 s), 导致 iverilog 编译失败。TB 本身是正确的标准计数器测试bench, 但因 rtl.v 存在语法错, iverilog rtl.v tb.v 整体编译失败(exit!=0, stderr 含 syntax error), 这就是该 syntax bug 的检测信号。"
+    },
+    {
+      "name": "tiny_fsm_comb",
+      "fault_type": "comb_logic",
+      "healable": false,
+      "top_module": "tiny_fsm_comb",
+      "ground_truth_patch": "S0: next=S0 -> S0: next=in?S1:S0",
+      "description": "Two-state FSM (S0/S1) with combinational next-state logic. The S0 branch unconditionally keeps next=S0 instead of in?S1:S0, so the FSM is permanently stuck in S0 and never transitions to S1 even when in=1. Output out (Moore, =state) stays 0."
+    },
+    {
+      "name": "tiny_fsm_reset",
+      "fault_type": "timing_reset",
+      "healable": false,
+      "top_module": "tiny_fsm",
+      "ground_truth_patch": "state<=S1 -> state<=S0",
+      "description": "Two-state Moore FSM (S0/S1). Reset is wrongly asserted to S1 instead of S0; correct design resets state to S0 so output is 0 after reset. Healable=false because FSM reset-value bugs are hard to auto-repair reliably."
+    }
+  ]
+}

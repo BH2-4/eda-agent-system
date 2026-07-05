@@ -1,0 +1,8 @@
+{
+  "name": "counter_reset",
+  "fault_type": "timing_reset",
+  "healable": true,
+  "top_module": "counter_reset",
+  "ground_truth_patch": "count<=8'hFF -> count<=8'd0",
+  "description": "8-bit counter reset value is wrong: synchronous reset assigns 0xFF instead of 0x00, so the counter starts at 255 instead of 0 after reset."
+}

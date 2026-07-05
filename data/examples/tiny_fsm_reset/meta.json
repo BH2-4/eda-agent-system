@@ -1,0 +1,8 @@
+{
+  "name": "tiny_fsm_reset",
+  "fault_type": "timing_reset",
+  "healable": false,
+  "top_module": "tiny_fsm",
+  "ground_truth_patch": "state<=S1 -> state<=S0",
+  "description": "Two-state Moore FSM (S0/S1). Reset is wrongly asserted to S1 instead of S0; correct design resets state to S0 so output is 0 after reset. Healable=false because FSM reset-value bugs are hard to auto-repair reliably."
+}

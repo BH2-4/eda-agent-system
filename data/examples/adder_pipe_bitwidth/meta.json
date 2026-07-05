@@ -1,0 +1,8 @@
+{
+  "name": "adder_pipe_bitwidth",
+  "fault_type": "bitwidth",
+  "healable": true,
+  "top_module": "adder_pipe",
+  "ground_truth_patch": "reg [7:0] sum -> reg [8:0] sum + output [8:0]",
+  "description": "Pipelined adder output sum is declared 8 bits wide ([7:0]) instead of the required 9 bits ([8:0]) to hold the full a+b range (max 511). For inputs a=200, b=200 the correct sum is 400, but the 8-bit register wraps modulo 256 yielding 144. Widening sum to [8:0] (and the output port accordingly) eliminates the overflow."
+}

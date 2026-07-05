@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eda-agent"
+version = "0.1.0"
+description = "Agentic EDA pipeline for Agentic4Systems Hackathon (CPlanner + Tool Registry + A diagnose + B self_heal)"
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic>=0.40",
+    "openai>=1.30",
+    "jsonschema>=4",
+    "python-dotenv>=1.0",
+    "tomli; python_version<'3.11'",
+]
+
+[project.scripts]
+eda = "eda_agent.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+markers = [
+    "needs_eda: tests requiring yosys/iverilog/opensta installed",
+    "needs_llm: tests requiring GLM_API_KEY (self_heal patch via LLM; default glm provider)",
+]
+testpaths = ["tests"]
+pythonpath = ["src"]

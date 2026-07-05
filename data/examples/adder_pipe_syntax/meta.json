@@ -1,0 +1,8 @@
+{
+    "name": "adder_pipe_syntax",
+    "fault_type": "syntax",
+    "healable": true,
+    "top_module": "adder",
+    "ground_truth_patch": "a +* b -> a + b",
+    "description": "Adder with illegal operator +* in expression. RTL fails to compile under iverilog (syntax error). Standard adder testbench detects sum==30."
+}

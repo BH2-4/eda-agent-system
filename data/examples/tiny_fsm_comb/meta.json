@@ -1,0 +1,8 @@
+{
+  "name": "tiny_fsm_comb",
+  "fault_type": "comb_logic",
+  "healable": false,
+  "top_module": "tiny_fsm_comb",
+  "ground_truth_patch": "S0: next=S0 -> S0: next=in?S1:S0",
+  "description": "Two-state FSM (S0/S1) with combinational next-state logic. The S0 branch unconditionally keeps next=S0 instead of in?S1:S0, so the FSM is permanently stuck in S0 and never transitions to S1 even when in=1. Output out (Moore, =state) stays 0."
+}

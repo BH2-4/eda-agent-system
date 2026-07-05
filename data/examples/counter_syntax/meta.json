@@ -1,0 +1,8 @@
+{
+  "name": "counter_syntax",
+  "fault_type": "syntax",
+  "healable": true,
+  "top_module": "counter",
+  "ground_truth_patch": "alwayss -> always (remove the extra 's')",
+  "description": "counter 计数器语法 bug: 'always @(posedge clk)' 被错拼成 'alwayss @(posedge clk)'(多写一个 s), 导致 iverilog 编译失败。TB 本身是正确的标准计数器测试bench, 但因 rtl.v 存在语法错, iverilog rtl.v tb.v 整体编译失败(exit!=0, stderr 含 syntax error), 这就是该 syntax bug 的检测信号。"
+}

@@ -1,0 +1,8 @@
+{
+  "name": "counter_bitwidth",
+  "fault_type": "bitwidth",
+  "healable": true,
+  "top_module": "counter",
+  "ground_truth_patch": "reg [3:0] count → reg [7:0] count",
+  "description": "8-bit counter has its count register declared as only 4 bits wide ([3:0]), so it wraps at 15 instead of counting up to 200 as an 8-bit counter should."
+}

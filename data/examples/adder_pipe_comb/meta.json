@@ -1,0 +1,8 @@
+{
+  "name": "adder_pipe_comb",
+  "fault_type": "comb_logic",
+  "healable": true,
+  "top_module": "adder_pipe_comb",
+  "ground_truth_patch": "case 末尾补 default: y = 9'd0;",
+  "description": "组合逻辑加/减法器, case(sel) 缺少 default 分支。sel=2/3 时综合出 latch, y 保持旧值而非归零。修复: 在 case 末尾补 default: y = 0;。"
+}
