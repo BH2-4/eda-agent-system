@@ -1,0 +1,291 @@
+{
+  "eval_id": "20260705_140655_eval",
+  "generated_at": "2026-07-05T14:06:55.096476+00:00",
+  "corpus_path": "data\\logs_corpus\\corpus.jsonl",
+  "kb_path": "data/error_kb.json",
+  "corpus_version": "1.0",
+  "with_llm": false,
+  "provider": null,
+  "n_samples": 30,
+  "thresholds": {
+    "A1_top1_weighted": 0.6,
+    "A2_rule_coverage": 0.4,
+    "A3_llm_conf_mean": 0.6,
+    "A4_rule_conf_mean": 0.7,
+    "A8_p50_s": 20.0,
+    "A8_p95_s": 60.0,
+    "A11_total": 30,
+    "A11_synth": 5,
+    "A11_sim": 5,
+    "A11_sta": 5,
+    "A11_hard": 3
+  },
+  "A1_top1_weighted": 0.2533,
+  "A1_code_acc": 0.4667,
+  "A1_root_cause_acc": 0.0,
+  "A1_hint_acc": 0.3333,
+  "A2_rule_coverage": 0.7778,
+  "A2_rule_hits": 14,
+  "A2_rule_eligible": 18,
+  "A3_llm_conf_mean": null,
+  "A3_llm_samples": 0,
+  "A4_rule_conf_mean": 0.6633,
+  "A4_rule_samples": 30,
+  "A8_p50_s": 0.0,
+  "A8_p95_s": 0.0002,
+  "A8_wall_times": [
+    0.0007,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0002,
+    0.0,
+    0.0,
+    0.0001,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "A9_needs_patch_acc": 0.6667,
+  "A9_tp": 14,
+  "A9_fp": 0,
+  "A9_fn": 10,
+  "A9_tn": 6,
+  "A11_buckets": {
+    "total": 30,
+    "by_tool": {
+      "yosys_synth": 14,
+      "iverilog_sim": 11,
+      "opensta_timing": 5
+    },
+    "by_stage": {
+      "synth": 13,
+      "sim": 11,
+      "sta": 5,
+      "multi": 1
+    },
+    "by_bucket": {
+      "seed": 13,
+      "grown": 5,
+      "novel": 12
+    },
+    "by_difficulty": {
+      "easy": 8,
+      "medium": 15,
+      "hard": 7
+    }
+  },
+  "A12_sample_audit": null,
+  "fallback_rate": 0.0,
+  "kb_corrupted": false,
+  "per_bucket": {
+    "seed": {
+      "n": 13,
+      "A1": 0.5231,
+      "A2": 0.9231,
+      "fallback_rate": 0.0,
+      "conf_mean": 0.6923
+    },
+    "grown": {
+      "n": 5,
+      "A1": 0.08,
+      "A2": 0.4,
+      "fallback_rate": 0.0,
+      "conf_mean": 0.68
+    },
+    "novel": {
+      "n": 12,
+      "A1": 0.0333,
+      "A2": 0.0,
+      "fallback_rate": 0.0,
+      "conf_mean": 0.625
+    }
+  },
+  "per_pattern": [],
+  "failures": [
+    {
+      "id": "seed_synth_005",
+      "score": 0.4,
+      "code": 1,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "root_cause_low"
+    },
+    {
+      "id": "seed_sim_001",
+      "score": 0.4,
+      "code": 1,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "root_cause_low"
+    },
+    {
+      "id": "grown_synth_001",
+      "score": 0.0,
+      "code": 0,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "code_mismatch"
+    },
+    {
+      "id": "grown_synth_002",
+      "score": 0.0,
+      "code": 0,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "code_mismatch"
+    },
+    {
+      "id": "grown_sim_001",
+      "score": 0.0,
+      "code": 0,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "code_mismatch"
+    },
+    {
+      "id": "grown_sim_002",
+      "score": 0.0,
+      "code": 0,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "code_mismatch"
+    },
+    {
+      "id": "grown_sta_001",
+      "score": 0.0,
+      "code": 0,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "code_mismatch"
+    },
+    {
+      "id": "grown_multi_001",
+      "score": 0.4,
+      "code": 1,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "root_cause_low"
+    },
+    {
+      "id": "novel_synth_001",
+      "score": 0.0,
+      "code": 0,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "code_mismatch"
+    },
+    {
+      "id": "novel_synth_002",
+      "score": 0.0,
+      "code": 0,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "code_mismatch"
+    },
+    {
+      "id": "novel_synth_003",
+      "score": 0.0,
+      "code": 0,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "code_mismatch"
+    },
+    {
+      "id": "novel_synth_004",
+      "score": 0.0,
+      "code": 0,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "code_mismatch"
+    },
+    {
+      "id": "novel_sim_001",
+      "score": 0.0,
+      "code": 0,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "code_mismatch"
+    },
+    {
+      "id": "novel_sim_002",
+      "score": 0.0,
+      "code": 0,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "code_mismatch"
+    },
+    {
+      "id": "novel_sim_003",
+      "score": 0.0,
+      "code": 0,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "code_mismatch"
+    },
+    {
+      "id": "novel_sim_004",
+      "score": 0.0,
+      "code": 0,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "code_mismatch"
+    },
+    {
+      "id": "novel_sim_005",
+      "score": 0.0,
+      "code": 0,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "code_mismatch"
+    },
+    {
+      "id": "novel_sta_001",
+      "score": 0.0,
+      "code": 0,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "code_mismatch"
+    },
+    {
+      "id": "novel_sta_002",
+      "score": 0.0,
+      "code": 0,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "code_mismatch"
+    },
+    {
+      "id": "novel_multi_001",
+      "score": 0.4,
+      "code": 1,
+      "root_cause": 0,
+      "hint": 0,
+      "reason": "root_cause_low"
+    }
+  ],
+  "pass": false,
+  "failed_checks": [
+    "A4_rule_conf_mean",
+    "A1_top1_weighted"
+  ]
+}
