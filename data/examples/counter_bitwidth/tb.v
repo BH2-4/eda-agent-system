@@ -7,7 +7,7 @@ module tb;
     counter dut(
         .clk(clk),
         .rst(rst),
-        .count(count[3:0])
+        .count(count)
     );
 
     initial clk = 0;

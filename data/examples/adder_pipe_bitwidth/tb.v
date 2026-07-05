@@ -4,7 +4,7 @@ module tb;
     reg rst;
     reg [7:0] a;
     reg [7:0] b;
-    wire [7:0] sum;
+    wire [8:0] sum;
 
     adder_pipe dut (
         .clk(clk),
@@ -37,7 +37,7 @@ module tb;
 
         // Correct hardware: sum should hold 400 -> requires [8:0] register.
         // Buggy [7:0] truncates -> observed 144. Compare against 9-bit expected.
-        if ({1'b0, sum} !== 9'd400) begin
+        if (sum !== 9'd400) begin
             $display("TEST_FAIL sum_overflow");
             $finish;
         end

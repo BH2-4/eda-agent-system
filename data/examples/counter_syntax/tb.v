@@ -25,6 +25,7 @@ module tb;
 
         // Run several cycles so counter can increment
         repeat(10) @(posedge clk);
+        #1; // settle NBA before sampling (count 是 NBA 赋值,posedge 时未生效)
 
         // After 10 increments starting from 0, count should be 10
         if (count !== 8'd10) begin
