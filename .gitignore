@@ -21,3 +21,6 @@ runs/*
 # IDE
 .vscode/
 .idea/
+
+# zread 运行态(wiki 产物,不进 git)
+.zread/
