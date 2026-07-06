@@ -26,6 +26,15 @@ from tests._planner_helpers import (
     _ok_parsed,
 )
 
+# RunReport.metrics 标准字段集(契约 §2.4 v1.2 锁定 15 字段,c_planner._build_metrics)。
+EXPECTED_METRICS_15 = {
+    "planner_iterations", "tool_calls_total", "llm_calls",
+    "llm_tokens_in", "llm_tokens_out", "sim_passed",
+    "num_passed", "num_failed", "wns_ns", "tns_ns",
+    "self_heal_convergence", "self_heal_best_iter",
+    "self_heal_pass_rate", "baseline_pass_rate", "wall_time_s",
+}
+
 
 def _echo_tool(name: str = "echo") -> StubTool:
     """返回固定 ok 的 echo tool(无副作用)。"""
@@ -103,6 +112,7 @@ def test_status_ok_when_sim_passes(tmp_path: Path) -> None:
     assert rep.status == "ok"
     assert rep.metrics["sim_passed"] is True
     assert rep.metrics["planner_iterations"] >= 2  # synth + sim
+    assert set(rep.metrics.keys()) == EXPECTED_METRICS_15  # 15 字段锁定
 
 
 def test_status_failed_when_sim_fails_and_no_heal(tmp_path: Path) -> None:

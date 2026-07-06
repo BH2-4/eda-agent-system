@@ -486,7 +486,7 @@ def test_diagnosis_report_to_parsed_has_exactly_13_top_level_business_keys():
     )
     parsed = r.to_parsed()
     # 13 个契约必填字段 + _schema(把 _schema 算 13 之内,共 13 个顶层 key)。
-    assert _REQUIRED_13_KEYS <= set(parsed.keys())
+    assert set(parsed.keys()) == _REQUIRED_13_KEYS
     # _schema 内嵌字段:
     assert parsed["_schema"]["name"] == "skill_diagnose"
     assert parsed["_schema"]["version"] == "0.1.0"

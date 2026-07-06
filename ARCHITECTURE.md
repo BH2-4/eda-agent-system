@@ -131,7 +131,7 @@ agentic 充分性自检(防"会循环的 wrapper"判定,契约 §10):
 ### 3.4 错误码 namespace(契约 §2.6 v1.2)
 
     eda / synth / sim / sta / drc / pnr / llm / diagnose(A) / heal(B)
-    # MVP 12 码保留为 eda.* 别名;diagnose.* / heal.* 是规范码,C 按 namespace 聚类读
+    # MVP 13 码保留为 eda.* 别名;diagnose.* / heal.* 是规范码,C 按 namespace 聚类读
 
 ### 3.5 工件存储(契约 §2.4)
 
@@ -245,7 +245,7 @@ agentic 充分性自检(防"会循环的 wrapper"判定,契约 §10):
         --goal "pass all tests" \
         [--lib data/lib/sky130_xx.lib --clock clk] \
         [--max-iter 5] [--mode llm] [--run-budget 600]
-    # 退出码:0=ok,1=failed,2=budget_exhausted,64=参数错
+    # 退出码:0=ok,1=failed,2=budget_exhausted,64=report 不存在
     # stdout 打印 runs/<run_id>/report.md 路径
 
     eda diagnose --rtl data/examples/counter/rtl_bitwidth_bug.v --tb data/examples/counter/tb.v

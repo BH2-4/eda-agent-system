@@ -1,8 +1,9 @@
 """B 自修复 skill_self_heal(契约 §2.3 §5.2 v1.2)。
 
 闭环流程:综合 → 仿真 →(可选 STA)→ 诊断 → patch → 重验证,带版本栈回退与
-三策略升级(diff → full_rewrite → diagnose_only)。失败也落 best/{rtl.v,meta.json}
-+ report.md,``best_iter`` 可 -1。
+三策略升级(diff → full_rewrite → diagnose_only)。主循环收尾落
+best/{rtl.v,meta.json} + report.md(``best_iter`` 可 -1);_fail 早返(rtl/tb/goal
+校验失败)不落 skill 工件,由 c_planner 兜底落 run 级 report + manifest。
 
 契约硬规则:``contract_version`` 必须 ``from eda_agent.contracts import CONTRACT_VERSION``
 引用(禁止裸 "0.1.0");``parsed`` 必须含 ``_schema`` 元字段;``artifacts`` 元素必须用
@@ -366,7 +367,14 @@ class SelfHealSkill:
         remaining_budget_s: float | None = None,
     ) -> SkillResult:
         t0 = monotonic()
-        budget = min(self.budget_s, remaining_budget_s or self.budget_s)
+        # 区分 None 与 0.0(与 diagnose.py:582-585 一致):None 用 self.budget_s;
+        # 具体数值(含 0.0)表示"就这么多预算"。避免 `0.0 or self.budget_s` 因
+        # 0.0 falsy 回退到 self.budget_s 的真值陷阱(违反双层预算仲裁:C 下传
+        # 0.0 表示无剩余,应立即 budget 收敛)。
+        if remaining_budget_s is None:
+            budget = self.budget_s
+        else:
+            budget = min(self.budget_s, max(0.0, float(remaining_budget_s)))
         run_id_s = str(run_id) if run_id is not None else ""
 
         rtl_path = inputs.get("rtl")

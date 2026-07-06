@@ -215,6 +215,7 @@ def test_severity_mapping():
     assert severity_of(EDA_INTERNAL) == "fatal"
     assert severity_of(EDA_TOOL_NOT_FOUND) == "error"
     assert severity_of(EDA_TOOL_ARGS_INVALID) == "error"
+    assert severity_of("eda.schema_mismatch") == "error"  # 第 13 个 MVP 码(显式登记)
     assert severity_of(HEAL_REDUCED_TO_DIAGNOSE) == "info"
     assert severity_of(HEAL_UNSUPPORTED_GOAL) == "error"
     assert severity_of(DIAGNOSE_NO_ERROR_FOUND) == "warn"

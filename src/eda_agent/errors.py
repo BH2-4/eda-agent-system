@@ -1,8 +1,8 @@
 """错误码与结构化 ErrorItem(契约 §2.6 v1.2)。
 
 二段式 ``namespace.code``;namespace 登记表正式含 ``diagnose``(A)与 ``heal``(B)。
-MVP 12 码保留为 ``eda.*`` 别名(向后兼容)。C 读 error_code 时**按 namespace 聚类**:
-namespace in {"diagnose","heal"} 走各自语义;namespace == "eda" 走 12 码语义;
+MVP 13 码保留为 ``eda.*`` 别名(向后兼容)。C 读 error_code 时**按 namespace 聚类**:
+namespace in {"diagnose","heal"} 走各自语义;namespace == "eda" 走 13 码语义;
 不做双向字符串相等比较。
 
 规范码是 ``diagnose.*`` / ``heal.*`` / ``synth|sim|sta|...``;``eda.*`` 是兼容别名。
@@ -16,7 +16,7 @@ Severity = Literal["info", "warn", "error", "fatal"]
 
 # ── namespace 登记表(§2.6 v1.2,含 diagnose/heal) ─────────────────────
 NAMESPACES: tuple[str, ...] = (
-    "eda",       # 框架级 + 现有 12 个 MVP 码(别名)
+    "eda",       # 框架级 + 现有 13 个 MVP 码(别名)
     "synth",     # Yosys 综合领域
     "sim",       # iverilog 仿真领域
     "sta",       # OpenSTA 时序领域
@@ -27,7 +27,7 @@ NAMESPACES: tuple[str, ...] = (
     "heal",      # B 自修复领域(v1.2 登记)
 )
 
-# ── MVP 12 个核心码(保留为 eda.* 别名,§2.6) ──────────────────────────
+# ── MVP 13 个核心码(保留为 eda.* 别名,§2.6) ──────────────────────────
 # 值即规范二段式字符串,供 ToolResult.error_code / ErrorItem.code 使用。
 EDA_TOOL_NOT_FOUND     = "eda.tool_not_found"
 EDA_TOOL_ARGS_INVALID  = "eda.tool_args_invalid"
@@ -84,6 +84,14 @@ SEVERITY_BY_CODE: dict[str, Severity] = {
     HEAL_PATCH_SYNTAX_INVALID: "warn",
     HEAL_REGRESSION_DEADLOCK:  "warn",
     HEAL_REDUCED_TO_DIAGNOSE:  "info",
+    # 领域规范码(synth/sta/sim namespace,各 Tool 模块产出的 error_code 字面量)。
+    # sta.no_liberty 是配置缺失(liberty 缺失,opensta_timing.py:45)非失败 → warn;
+    # 其余默认 error 已与 severity_of 兜底一致,显式登记消除"未列出"歧义。
+    "synth.synth_failed":      "error",
+    "sta.sta_unavailable":     "error",
+    "sta.sta_failed":          "error",
+    "sta.no_liberty":          "warn",
+    "sim.fail_signal":         "error",
 }
 
 

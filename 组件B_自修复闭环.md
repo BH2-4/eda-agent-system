@@ -597,7 +597,7 @@ artifact_ref 协议(契约 §2.4):B 的所有 `SkillResult.artifacts` 元素必�
                                 rationale=llm_resp.text.splitlines()[0][:200])
         # patch 失败 → 不入栈,等上层 _maybe_rollback 换策略
         return PatchOutcome(iter_n=iter_n, diagnose_parsed=diagnose_parsed,
-                            patch_source=source if is_full_rewrite else "llm_diff",  # v1.2:记最后一次尝试
+                            patch_source=("llm_full_rewrite" if is_full_rewrite else "llm_diff"),  # v1.2:记最后一次尝试
                             patch_diff=patch_text,
                             target_lines=target_lines, applied=False,
                             rolled_back=False, regression=False,

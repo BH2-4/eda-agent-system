@@ -356,7 +356,7 @@ C 位于 L4,夹在 L5(对外接口层)与 L3(Tool Registry)之间。L5 把人类
 
 ### 5.6 错误码(C 视角产生的,契约 §2.6 二段式)
 
-C 自身不发明新 namespace,复用契约 MVP 12 码:
+C 自身不发明新 namespace,复用契约 MVP 13 码:
 
 | 触发场景 | error_code | severity(契约表) | C 行为 |
 |---|---|---|---|
@@ -369,6 +369,15 @@ C 自身不发明新 namespace,复用契约 MVP 12 码:
 | Skill 经 as_tool 的 budget_exhausted | `eda.budget_exhausted`(parsed._skill_status 保留原值) | warn | C 据 _skill_status 区分"真崩 vs 没收敛"写进 report |
 | 未分类内部错(如 runner 落盘失败) | `eda.internal` | fatal | 立即 REPORTING,status="failed" |
 | parsed._schema 不匹配 | `eda.schema_mismatch` | error | 立即 REPORTING(status=failed),记录到 report |
+
+C 消费 A/B 规范码(契约 §2.6 要求本表含 diagnose.*/heal.* 行):经 errors.namespace_of(code) 派生 namespace,按 {"diagnose","heal"} vs "eda" 分支聚类(契约 §2.6),不做双向字符串相等比较。
+
+| 触发场景 | error_code(规范码) | severity | C 行为 |
+|---|---|---|---|
+| A 工具失败但规则+LLM 无根因 | `diagnose.no_error_found` | warn | 入 report.errors,不中断 ReAct |
+| A LLM 失败 / args 不符 / KB 损坏 | `diagnose.llm_call_failed`(别名 eda.*)/ `diagnose.args_invalid`(别名 eda.*)/ `diagnose.kb_corrupted` | error / error / warn | 同上 |
+| B goal 不可解析 / rtl·tb 不存在 / diagnose 失败 | `heal.unsupported_goal` / `heal.rtl_not_found` / `heal.tb_not_found` / `heal.diagnose_failed` | error | 立即 REPORTING(status=failed) |
+| B patch 语法错 / 死锁 / 防退化降级 | `heal.patch_syntax_invalid` / `heal.regression_deadlock` / `heal.reduced_to_diagnose` | warn / warn / info | 据 _skill_status 区分,入 report |
 
 C 的退出码与 status 映射:`ok→0`,`failed→1`,`budget_exhausted→2`,report 不存在 `→64`(仅 `eda report <run_id>` 子命令,run_id 目录无 report.md)。
 
@@ -692,7 +701,7 @@ C 的退出码与 status 映射:`ok→0`,`failed→1`,`budget_exhausted→2`,rep
 
 ### 7.4 C 用到的错误码(§2.6)
 
-见 §5.6 表。C 不发明新 namespace,全部复用 MVP 12 码(`eda.tool_not_found / tool_args_invalid / subprocess_failed / subprocess_timeout / llm_call_failed / budget_exhausted / internal / schema_mismatch` 等)。
+见 §5.6 表。C 不发明新 namespace,全部复用 MVP 13 码(`eda.tool_not_found / tool_args_invalid / subprocess_failed / subprocess_timeout / llm_call_failed / budget_exhausted / internal / schema_mismatch` 等)。
 
 ---
 

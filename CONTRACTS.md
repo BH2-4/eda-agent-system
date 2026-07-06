@@ -572,20 +572,19 @@ experiment_manifest.json(单 run 对比实验度量,scoring 代表 major 解药;
 
     {
       "run_id": "20260715_103022_a3f1",
+      "baseline_run_id": "20260715_103100_b1e2",   // v1.2:基线 run 的 run_id;缺失时 null
       "design_id": "counter_injected_bitwidth",
       "fault_type": "bitwidth",            // syntax | comb_logic | timing_reset | bitwidth
-      "baseline_run_id": "20260715_103100_b1e2",   // v1.2 新增:基线 run 的 run_id
       "baseline_pass_rate": 0.0,            // baseline run 的 parsed.passed ? 1.0 : 0.0(见下"baseline run 定义")
-      "self_heal_pass_rate": 1.0,           // self_heal run 的收敛判定(见下)
-      "iterations_used": 3,
-      "best_iter": 3,
-      "convergence_cause": "all_pass",
+      "self_heal_pass_rate": 1.0,           // (self_heal_convergence=="all_pass") ? 1.0 : 0.0
+      "self_heal_convergence": "all_pass",  // all_pass|max_iter|regression|budget|none(对应 parsed._convergence_cause)
+      "self_heal_best_iter": 3,             // 对应 parsed._best_iter;-1 表无成功轮
+      "planner_iterations": 3,              // C 状态机相数
       "llm_calls": 12,
-      "llm_tokens_total": 8420,
+      "tokens_total": 8420,                 // llm_tokens_in + llm_tokens_out 之和
       "wall_time_s": 187.4,
-      "provider": "claude",
-      "model": "claude-sonnet-4",
-      "candidates_at_best_score": 1         // v1.2 新增:达到 best_score 的轮数,用于 tie-break 复核
+      "candidates_at_best_score": 1,        // v1.2:达到 best_score 的最早轮,用于 tie-break 复核
+      "contract_version": "0.1.0"           // 与 contracts.py CONTRACT_VERSION 一致
     }
 
 baseline run 定义(v1.2,完赛奖第 3 条指标对比的复现依据):
@@ -593,7 +592,7 @@ baseline run 定义(v1.2,完赛奖第 3 条指标对比的复现依据):
     baseline run = 对同一 inject bug RTL,C 的 plan 只跑 [yosys_synth, iverilog_sim]
                    (不调 diagnose、不调 self_heal、不调 STA),baseline_pass_rate =
                    iverilog_sim.parsed.passed ? 1.0 : 0.0。
-    self_heal run = 完整 self-heal 流程(self_heal_pass_rate = (convergence_cause=="all_pass") ? 1.0 : 0.0)。
+    self_heal run = 完整 self-heal 流程(self_heal_pass_rate = (self_heal_convergence=="all_pass") ? 1.0 : 0.0)。
     生成时机:C 在 self_heal 流程终态时,若 experiment_manifest.json 的 baseline_run_id 缺失,
               先跑一次 baseline-only plan 拿 baseline_pass_rate,再写 manifest。
               (或:在 fault_manifest.json 预存每个 inject bug 的已知 baseline=0,免跑一次。)
@@ -601,20 +600,16 @@ baseline run 定义(v1.2,完赛奖第 3 条指标对比的复现依据):
 experiment_summary.json(聚合层,v1.2 新增,消除"分故障类型修复率靠人工算"):
 
     {
-      "eval_id": "20260715_eval_001",
-      "generated_at": "2026-07-15T10:00:00Z",
-      "provider": "claude",
-      "model": "claude-sonnet-4",
-      "planner_mode": "llm",
-      "runs": ["20260715_103022_a3f1", ...],
+      "overall_pass_rate": 0.875,
+      "min_group_pass_rate": 0.5,           // min(by_fault_type.*.passed/total)
       "by_fault_type": {
-          "bitwidth":      {"total": 2, "passed": 2, "mean_iters": 2.5},
-          "comb_logic":    {"total": 2, "passed": 1, "mean_iters": 4.0},
-          "timing_reset":  {"total": 2, "passed": 1, "mean_iters": 3.5},
-          "syntax":        {"total": 2, "passed": 2, "mean_iters": 1.5}
+          "bitwidth":      {"total": 2, "passed": 2, "pass_rate": 1.0, "mean_iters": 2.5, "mean_best_iter": 2.0},
+          "comb_logic":    {"total": 2, "passed": 1, "pass_rate": 0.5, "mean_iters": 4.0, "mean_best_iter": 3.0},
+          "timing_reset":  {"total": 2, "passed": 2, "pass_rate": 1.0, "mean_iters": 3.5, "mean_best_iter": 2.5},
+          "syntax":        {"total": 2, "passed": 2, "pass_rate": 1.0, "mean_iters": 1.5, "mean_best_iter": 1.5}
       },
-      "overall_pass_rate": 0.75,
-      "min_group_pass_rate": 0.5           // min(by_fault_type.*.passed/total)
+      "total_runs": 8,
+      "total_passed": 7
     }
     # 生成:scripts/summarize_eval.py 扫描所有 experiment_manifest.json 聚合。
 
@@ -742,25 +737,25 @@ heal namespace 错误码(B §5.2,severity 注明):
 - 规范码是 `diagnose.*` 与 `heal.*`(以及 `synth/sim/sta/...` 等领域码);`eda.*` 是兼容别名。
 - C 读 error_code 时**按 namespace 聚类**:
   - namespace in {"diagnose","heal"} → 走各自语义
-  - namespace == "eda" → 走 12 码语义
+  - namespace == "eda" → 走 13 码语义
   - 不做双向字符串相等比较。
 - C §5.6 错误码表必须含 `diagnose.*` 与 `heal.*` 行。
 
 MVP 13 个核心码(保留为 `eda.*` 别名,向后兼容):
 
-    eda.tool_not_found       = "E_TOOL_NOT_FOUND"        # Registry 找不到该 Tool
-    eda.tool_args_invalid    = "E_TOOL_ARGS_INVALID"     # args 不符合 schema
-    eda.subprocess_failed    = "E_SUBPROCESS_FAILED"     # 子进程退出码非 0
-    eda.subprocess_timeout   = "E_SUBPROCESS_TIMEOUT"    # 子进程超时
-    eda.parse_failed         = "E_PARSE_FAILED"          # 工具输出无法解析成 parsed
-    eda.rtl_syntax           = "E_RTL_SYNTAX"            # RTL 语法错
-    eda.sim_compile_failed   = "E_SIM_COMPILE_FAILED"    # 仿真编译失败
-    eda.sim_assert_failed    = "E_SIM_ASSERT_FAILED"     # 仿真断言失败
-    eda.timing_violation     = "E_TIMING_VIOLATION"      # 时序违例
-    eda.llm_call_failed      = "E_LLM_CALL_FAILED"       # LLM 调用失败
-    eda.budget_exhausted     = "E_BUDGET_EXHAUSTED"      # 迭代/时间预算耗尽
-    eda.internal             = "E_INTERNAL"              # 未分类内部错
-    eda.schema_mismatch                                   # parsed._schema 不匹配时抛
+    eda.tool_not_found       = "eda.tool_not_found"      # Registry 找不到该 Tool
+    eda.tool_args_invalid    = "eda.tool_args_invalid"   # args 不符合 schema
+    eda.subprocess_failed    = "eda.subprocess_failed"   # 子进程退出码非 0
+    eda.subprocess_timeout   = "eda.subprocess_timeout"  # 子进程超时
+    eda.parse_failed         = "eda.parse_failed"        # 工具输出无法解析成 parsed
+    eda.rtl_syntax           = "eda.rtl_syntax"          # RTL 语法错
+    eda.sim_compile_failed   = "eda.sim_compile_failed"  # 仿真编译失败
+    eda.sim_assert_failed    = "eda.sim_assert_failed"   # 仿真断言失败
+    eda.timing_violation     = "eda.timing_violation"    # 时序违例
+    eda.llm_call_failed      = "eda.llm_call_failed"     # LLM 调用失败
+    eda.budget_exhausted     = "eda.budget_exhausted"    # 迭代/时间预算耗尽
+    eda.internal             = "eda.internal"            # 未分类内部错
+    eda.schema_mismatch      = "eda.schema_mismatch"     # parsed._schema 不匹配时抛
 
 新工具示例(无需改核心表):
 
@@ -1156,7 +1151,7 @@ pyproject.toml 关键项:
 
 B 自修复验收基线(v1.2 单一硬门槛,消除 v1.1 三套口径分叉):
 
-- **单一硬门槛**:在 fault_manifest.json 登记的 N>=8 个 healable=true inject bug 中,按 fault_type 分组取最小通过率 >= 0.50,且 bitwidth 类至少 1 个 convergence_cause=all_pass。
+- **单一硬门槛**:在 fault_manifest.json 登记的 N>=8 个 inject bug 中(summarize_eval.py 聚合时含 healable=false 的不可修案例作分母以反映真实难度,不按 healable 字段过滤),按 fault_type 分组取最小通过率 >= 0.50,且 bitwidth 类至少 1 个 convergence_cause=all_pass。
 - **失败案例**:至少 1 个 inject bug 演示失败案例,convergence_cause ∈ {budget, regression, max_iter}(MVP 失败态全部算合规失败案例)。
 - 两个都算交付。失败案例"真实且有结构",不会出现"全部失败 = 没 demo"。
 
@@ -1262,7 +1257,7 @@ agentic 自检(防止被评委判定"会循环的 wrapper"):
 
 冲突 3:CLI 子命令数量 → v1.2 调整为 **3 个**(self-heal + diagnose + report)。理由:diagnose 单点 demo 对评委展示 A 诊断器能力有显著加分,工程量 0.3 人天;run 仍由 self_heal 覆盖。
 
-冲突 4:错误码封闭表 vs 开放二段式 → **二段式 namespace.code + MVP 12 码降级为 eda.* 别名**(理由同 v1.1)。v1.2 补:namespace 表正式含 diagnose/heal。
+冲突 4:错误码封闭表 vs 开放二段式 → **二段式 namespace.code + MVP 13 码降级为 eda.* 别名**(理由同 v1.1,v1.2 扩为 13 含 schema_mismatch)。v1.2 补:namespace 表正式含 diagnose/heal。
 
 冲突 5:provider 多实现是否 MVP → **MVP 只 ClaudeProvider,OpenAICompat 明确加分项**(理由同 v1.1)。
 

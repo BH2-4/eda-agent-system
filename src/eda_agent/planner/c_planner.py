@@ -258,9 +258,11 @@ class CPlanner:
             return Action(
                 "opensta_timing",
                 {
-                    "netlist": ARTIFACT_FROM_STATE,
+                    "rtl": ARTIFACT_FROM_STATE,
+                    "_artifact_ref": state.netlist_ref,
                     "lib": state.lib_path,
-                    "clock": state.clock_name,
+                    "clock_name": state.clock_name,
+                    "top_module": state.top_module,
                 },
                 "时序评估",
             )

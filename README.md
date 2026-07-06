@@ -77,7 +77,7 @@
         rtl_path='data/examples/counter_bitwidth/rtl.v', \
         tb_path='data/examples/counter_bitwidth/tb.v', max_iter=5), None); print(r.report_path, r.status)"
 
-实现进度:Phase 0-6 全完成(**201 单测绿**,GLM-5.2 Coding Plan 真跑通 e2e + T54 全量 8 bug 实验 S1 达标 + 良好线)。详见 ARCHITECTURE.md §7 + `runs/eval_snapshot/verdict.md`。
+实现进度:Phase 0-6 全完成(**200+ 单测绿**,GLM-5.2 Coding Plan 真跑通 e2e + T54 全量 8 bug 实验 S1 达标 + 良好线)。详见 ARCHITECTURE.md §7 + `runs/eval_snapshot/verdict.md`。
 
 ---
 
