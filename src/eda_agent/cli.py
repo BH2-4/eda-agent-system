@@ -1,11 +1,11 @@
-"""eda CLI(T47,契约 §6.3)。
+"""eda CLI(T47,契约 §2.0)。
 
 三个子命令:
 - ``eda self-heal``:执行 C + B 自修复闭环,落 runs/<run_id>/report.md。
 - ``eda diagnose``:执行 C + A 诊断器(不修复)。
 - ``eda report <run_id>``:打印已落盘的 report.md。
 
-退出码:0=ok,1=failed,2=budget_exhausted,64=report 不存在(契约 §6.3)。
+退出码:0=ok,1=failed,2=budget_exhausted,64=report 不存在(契约 §2.0)。
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ from eda_agent.runner import Runner
 from eda_agent.settings import Settings, load_settings
 from eda_agent.tools.bootstrap import build_registry
 
-# status → 退出码映射(契约 §6.3)
+# status → 退出码映射(契约 §2.0)
 _EXIT_CODES: dict[str, int] = {"ok": 0, "failed": 1, "budget_exhausted": 2}
 _EXIT_NOT_FOUND = 64
 

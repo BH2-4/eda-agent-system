@@ -265,7 +265,7 @@ A 诊断器(skill_diagnose)—— v1.2 parsed 字段集升级为强制完整集:
         "confidence": float,                   # 0..1,公式见下
         "needs_rtl_patch": bool,               # 强制字段;派生规则见下
         "used_layers": Literal["rule","llm","rule+llm"],
-        "kb_hits": list[str],                  # 命中的 ErrorPattern.pid 列表(可追溯)
+        "kb_hits": list[str],                  # 命中的错误码列表(ErrorItem.code 二段式,可追溯到错误分类;多条 ErrorPattern 可共享一码)
         "summary": str,                        # 与 root_cause_summary 同值,满足契约最小字段集
     }
     artifacts = [artifact_ref(run_id, "diagnose/report.md"), artifact_ref(run_id, "diagnose/report.json")]

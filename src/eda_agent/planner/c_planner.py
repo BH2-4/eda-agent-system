@@ -712,7 +712,7 @@ class CPlanner:
         tokens_in: int,
         tokens_out: int,
     ) -> dict[str, Any]:
-        """13 字段 metrics(契约 §2.4)+ T50 baseline_pass_rate 派生。"""
+        """15 字段 metrics(契约 §2.4)+ T50 baseline_pass_rate 派生。"""
         sim = state.last_sim or {}
         sta = state.last_sta or {}
         heal_parsed_list = [

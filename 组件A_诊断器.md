@@ -195,7 +195,7 @@ A 注册为 Tool(`skill_diagnose`),既可被 C(L4 Planner)直接调用,也可被
         confidence: float                     # 0..1,契约 §2.2 公式校准,见 §4.5
         evidence: list[str]                   # 证据片段(日志原文行,优先 .full.log)
         used_layers: Literal["rule","llm","rule+llm"]   # 走了哪些层(用于 §10 度量规则覆盖率)
-        kb_hits: list[str]                    # 命中的 ErrorPattern.pid 列表(可追溯)
+        kb_hits: list[str]                    # 命中的错误码列表(ErrorItem.code,可追溯到错误分类;非 ErrorPattern.pid)
 
         def to_parsed(self) -> dict[str, Any]:
             # 序列化为契约 §2.2 skill_diagnose.parsed 形状(含强制 _schema 元字段);
