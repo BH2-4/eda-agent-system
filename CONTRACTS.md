@@ -126,12 +126,19 @@ CLI 与 MCP 的入参/出参就是这两个 dataclass 的 schema。任何外部�
 
 CLI 子命令映射(MVP 实现 3 个,self_heal 为流水线主入口,diagnose 为单点演示):
 
-    eda self-heal --rtl ... --tb ... --goal ... [--max-iter N] [--lib ..] [--clock ..] [--mode rule|llm]
+    eda self-heal --rtl ... --tb ... --goal ... [--top-module <name>] [--max-iter N] [--lib ..] [--clock ..] [--mode rule|llm] [--run-budget <int>s]
                   → kind="self_heal"
     eda diagnose  --rtl ... --tb ...             → kind="diagnose"(单点 demo,内部 plan kind=diagnose)
     eda report    <run_id>                        → 读取已有 run 目录渲染报告
 
 > CLI 第三个子命令 `diagnose` 由 v1.2 新增(演示 A 诊断器的单点能力,0.3 人天),不阻塞 MVP 主路径;`run` 内部由 `self_heal` 覆盖。
+
+CLI 退出码(三子命令统一,src/eda_agent/cli.py):
+
+    0  = ok                  # RunReport.status="ok"
+    1  = failed              # RunReport.status="failed"
+    2  = budget_exhausted    # RunReport.status="budget_exhausted"
+    64 = report 不存在       # 仅 `eda report <run_id>`,run_id 目录无 report.md
 
 ### 2.1 Tool 基类与 ToolResult
 
@@ -343,16 +350,16 @@ as_tool() 适配契约(SkillResult → ToolResult 明确映射表 + reserved 字
             status = "ok" if sr.status == "ok" else "error"
             error_code = ("eda.budget_exhausted" if sr.status == "budget_exhausted"
                           else sr.error_code)
-            error_hint = (f"skill exhausted budget after {sr.iterations} iters"
-                          if sr.status == "budget_exhausted" else None)
+            error_hint = (f"skill {self.name} status={sr.status}"
+                          if (error_code is not None or sr.status != "ok") else None)
             parsed = dict(sr.final_parsed)
             parsed.update({
                 "_skill_status": sr.status,
-                "_iterations": sr.iterations,
-                "_trajectory": sr.trajectory,
-                "_patch_source": sr.patch_source,
-                "_convergence_cause": sr.convergence_cause,
-                "_best_iter": sr.best_iter,
+                "_skill_iterations": sr.iterations,
+                "_skill_trajectory": sr.trajectory,
+                "_skill_patch_source": sr.patch_source,
+                "_skill_convergence_cause": sr.convergence_cause,
+                "_skill_best_iter": sr.best_iter,
             })
             return ToolResult(status=status, exit_code=None, stdout="", stderr="",
                               parsed=parsed, artifacts=sr.artifacts, duration_s=sr.budget_used_s,
@@ -782,6 +789,7 @@ severity 与 code 的对应关系表(降低 LLM 自由度,提升跨 run 可比):
     eda.tool_args_invalid     → error
     eda.subprocess_timeout    → error
     eda.internal              → fatal
+    eda.schema_mismatch       → error
     diagnose.no_error_found   → warn
     diagnose.llm_call_failed  → error
     diagnose.kb_corrupted     → warn

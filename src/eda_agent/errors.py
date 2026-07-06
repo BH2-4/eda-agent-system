@@ -70,7 +70,8 @@ SEVERITY_BY_CODE: dict[str, Severity] = {
     EDA_TOOL_ARGS_INVALID:   "error",
     EDA_SUBPROCESS_TIMEOUT:  "error",
     EDA_INTERNAL:            "fatal",
-    # 未列出的 eda.* (subprocess_failed/parse_failed/llm_call_failed/schema_mismatch)
+    EDA_SCHEMA_MISMATCH:     "error",
+    # 未列出的 eda.* (subprocess_failed/parse_failed/llm_call_failed)
     # 默认 error/subprocess 由 severity_of 兜底,需精确时调用方覆盖。
     DIAGNOSE_NO_ERROR_FOUND:  "warn",
     DIAGNOSE_LLM_CALL_FAILED: "error",

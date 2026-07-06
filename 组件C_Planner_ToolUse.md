@@ -304,7 +304,7 @@ C 位于 L4,夹在 L5(对外接口层)与 L3(Tool Registry)之间。L5 把人类
         [--mode rule|llm]       # 覆盖 settings.planner_mode
         [--run-budget <int>s]
         # → 内部构造 RunRequest(kind="self_heal", ...) → run_pipeline → 打印 report_path
-        # 退出码:0=ok, 1=failed, 2=budget_exhausted, 64=参数错
+        # 退出码:0=ok, 1=failed, 2=budget_exhausted, 64=report 不存在
 
     eda diagnose --rtl <path> --tb <path>
         # → 内部构造 RunRequest(kind="diagnose", ...) → run_pipeline(内部 plan kind=diagnose)
@@ -368,9 +368,9 @@ C 自身不发明新 namespace,复用契约 MVP 12 码:
 | 预算耗尽 | `eda.budget_exhausted` | warn | status="budget_exhausted",走 REPORTING |
 | Skill 经 as_tool 的 budget_exhausted | `eda.budget_exhausted`(parsed._skill_status 保留原值) | warn | C 据 _skill_status 区分"真崩 vs 没收敛"写进 report |
 | 未分类内部错(如 runner 落盘失败) | `eda.internal` | fatal | 立即 REPORTING,status="failed" |
-| parsed._schema 不匹配 | `eda.schema_mismatch` | fatal | 立即 REPORTING(status=failed),记录到 report |
+| parsed._schema 不匹配 | `eda.schema_mismatch` | error | 立即 REPORTING(status=failed),记录到 report |
 
-C 的退出码与 status 映射:`ok→0`,`failed→1`,`budget_exhausted→2`,参数错 `→64`。
+C 的退出码与 status 映射:`ok→0`,`failed→1`,`budget_exhausted→2`,report 不存在 `→64`(仅 `eda report <run_id>` 子命令,run_id 目录无 report.md)。
 
 ### 5.7 副作用 / 产出工件清单(契约 §2.4 路径)
 
@@ -950,7 +950,7 @@ API key 走环境变量 `ANTHROPIC_API_KEY` / `DASHSCOPE_API_KEY` / `DEEPSEEK_AP
 | 预算耗尽控制 | run_budget_s=1s 时,RunReport.status="budget_exhausted",无步数爆炸(≤ planner_max_iterations+1) | `pytest tests/test_planner_limits.py::test_budget` |
 | 最大迭代控制 | planner_max_iterations=2 时,iteration 计数到 2 即转 REPORTING | `pytest tests/test_planner_limits.py::test_max_iter` |
 | 致命错早停 | A 返回 severity="fatal" → state.fatal=True,后续不执行新 Action | `pytest tests/test_planner_limits.py::test_fatal` |
-| v1.2 退出码一致性 | status=budget_exhausted→退出码 2;failed→1;参数错→64 | `pytest tests/test_cli_exit_codes.py`(3 用例:stub B 返回 budget_exhausted / fatal / 参数错) |
+| v1.2 退出码一致性 | status=budget_exhausted→退出码 2;failed→1;report 不存在→64 | `pytest tests/test_cli_exit_codes.py`(3 用例:stub B 返回 budget_exhausted / fatal / report not found) |
 | 工件传递 | opensta 的 args.netlist 等于 yosys_synth.artifacts[0] 的 artifact_ref | `pytest tests/test_action_exec.py::test_artifact_pass` |
 | Tool 注册可扩展 | 注册一个 stub tool "stub_ping",C 能发现并调用,parsed._schema.name="stub_ping" | `pytest tests/test_registry_extensibility.py`(新写:注册 stub → C plan 含它 → 执行成功) |
 

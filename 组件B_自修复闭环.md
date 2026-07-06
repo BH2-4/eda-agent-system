@@ -346,7 +346,7 @@ artifact_ref 协议(契约 §2.4):B 的所有 `SkillResult.artifacts` 元素必�
 ### 5.5 输入/输出错误与异常
 
 - B **不抛业务异常**给上层(契约 §2.5 tool-use 回环精神):所有失败路径走 `SkillResult.status="error"` + `error_code`,或 `"budget_exhausted"`。
-- 仅以下两类异常允许穿透(视为 eda.internal,severity=fatal):contracts schema 不匹配(`eda.schema_mismatch`)、runner 落盘 IO 错。这两类由 C 兜底。
+- 仅以下两类异常允许穿透(由 C 兜底):contracts schema 不匹配(`eda.schema_mismatch`,severity=error)、runner 落盘 IO 错(`eda.internal`,severity=fatal)。
 
 ---
 
