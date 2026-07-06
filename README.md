@@ -2,7 +2,7 @@
 
 > Track 01 Agentic EDA Infra | 完赛奖(3000 元)| 提交截止 2026-07-15 11:00
 > 团队:2 人核心(AI/Agent/系统)+ 1 人非技术(数据/文档/演示)
-> 环境:Win11 + RTX3060 Laptop | EDA 工具跑 WSL2 Ubuntu | LLM 主用 Claude API
+> 环境:Win11 + RTX3060 Laptop | EDA 工具跑 WSL2 Ubuntu-24.04(yosys 0.33 / iverilog 12.0) | LLM 用智谱 GLM Coding Plan(glm-5.2)
 
 ---
 
@@ -49,26 +49,24 @@
 
 ---
 
-## 4. 快速开始(占位,实现后补全)
+## 4. 快速开始
 
-    # 前置:WSL2 Ubuntu 装好 yosys/iverilog/opensta(Day0.5 gate)
-    # 见 ARCHITECTURE.md §6 环境与依赖
+    # 前置:WSL2 Ubuntu-24.04 装好 yosys/iverilog(opensta 可选,未装则 STA 降级)
+    # LLM key 写入 .env 的 GLM_API_KEY(智谱 Coding Plan 订阅,key 不进 git)
 
     git clone <repo> && cd eda-agent-system
     pip install -e .
-
-    # 配置 LLM API key(不进 git)
-    export ANTHROPIC_API_KEY=...
+    cp .env.example .env  # 填入 GLM_API_KEY
 
     # 跑一个 inject bug 的自修复(端到端)
     eda self-heal \
-        --rtl data/examples/counter/rtl_bitwidth_bug.v \
-        --tb  data/examples/counter/tb.v \
+        --rtl data/examples/counter_bitwidth/rtl.v \
+        --tb  data/examples/counter_bitwidth/tb.v \
         --goal "pass all tests"
     # → 打印 runs/<run_id>/report.md 路径,退出码 0=ok/1=failed/2=budget_exhausted
 
     # 单点演示 A 诊断器
-    eda diagnose --rtl data/examples/counter/rtl_bitwidth_bug.v --tb data/examples/counter/tb.v
+    eda diagnose --rtl data/examples/counter_bitwidth/rtl.v --tb data/examples/counter_bitwidth/tb.v
 
     # 渲染已有 run 的报告
     eda report <run_id>
@@ -76,10 +74,10 @@
     # Python SDK 一行调
     python -c "from eda_agent import run_pipeline; from eda_agent.contracts import RunRequest; \
         r = run_pipeline(RunRequest(kind='self_heal', goal='pass all tests', \
-        rtl_path='data/examples/counter/rtl_bitwidth_bug.v', \
-        tb_path='data/examples/counter/tb.v', max_iter=5), None); print(r.report_path, r.status)"
+        rtl_path='data/examples/counter_bitwidth/rtl.v', \
+        tb_path='data/examples/counter_bitwidth/tb.v', max_iter=5), None); print(r.report_path, r.status)"
 
-实现进度:Phase 0(gate)→ Phase 1(基座)→ Phase 2(Tool+LLM)→ Phase 3(A+B)→ Phase 4(C+e2e+对比实验)。详见 ARCHITECTURE.md §7。
+实现进度:Phase 0-6 全完成(**201 单测绿**,GLM-5.2 Coding Plan 真跑通 e2e + T54 全量 8 bug 实验 S1 达标 + 良好线)。详见 ARCHITECTURE.md §7 + `runs/eval_snapshot/verdict.md`。
 
 ---
 
