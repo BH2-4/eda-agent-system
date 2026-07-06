@@ -703,7 +703,7 @@ provider 实现口径(major:feasibility 解药):
 
 namespace 登记约定(v1.2 正式登记 diagnose(A)与 heal(B)):
 
-    eda        框架级 + 现有 12 个 MVP 码(作为别名保留,逐步迁移)
+    eda        框架级 + 现有 13 个 MVP 码(作为别名保留,逐步迁移)
     synth      Yosys 综合领域
     sim        iverilog 仿真领域
     sta        OpenSTA 时序领域
@@ -739,7 +739,7 @@ heal namespace 错误码(B §5.2,severity 注明):
   - 不做双向字符串相等比较。
 - C §5.6 错误码表必须含 `diagnose.*` 与 `heal.*` 行。
 
-MVP 12 个核心码(保留为 `eda.*` 别名,向后兼容):
+MVP 13 个核心码(保留为 `eda.*` 别名,向后兼容):
 
     eda.tool_not_found       = "E_TOOL_NOT_FOUND"        # Registry 找不到该 Tool
     eda.tool_args_invalid    = "E_TOOL_ARGS_INVALID"     # args 不符合 schema

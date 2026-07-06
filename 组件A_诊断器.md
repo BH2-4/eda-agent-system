@@ -343,7 +343,7 @@ SkillResult.patch_source = "none"、convergence_cause = "none"、best_iter = -1(
 见 §4.3 `DiagnosisReport.to_parsed()`。要点(v1.2 字段集为强制完整集):
 
 - 必含 `_schema: {name:"skill_diagnose", version:"0.1.0", contract_version: CONTRACT_VERSION}`(常量引用,禁裸字符串)。
-- 必含 11 字段:skill / tool / stage / root_causes(list[ErrorItem.asdict],7 字段齐全)/ root_cause_summary(str,辅助)/ severity / fix_hints / confidence / needs_rtl_patch(强制,派生见 §4.5)/ used_layers / kb_hits / summary。
+- 必含 13 字段(含 _schema 元字段,12 业务字段):skill / tool / stage / root_causes(list[ErrorItem.asdict],7 字段齐全)/ root_cause_summary(str,辅助)/ severity / fix_hints / confidence / needs_rtl_patch(强制,派生见 §4.5)/ used_layers / kb_hits / summary。
 - `root_causes` 是结构化权威(装 ErrorItem dict 列表);`root_cause_summary` / `summary` 仅人类可读辅助字段。B/C 读 root_causes 做判定,读 summary 仅入 report.md。
 - `confidence` 走 §4.5 公式(含饱和项 + contradiction),不接受 LLM 自填。
 - `needs_rtl_patch` 由 errors 派生:任一 ErrorItem.severity in ("error","fatal") 时为 True(§4.5)。
@@ -787,7 +787,7 @@ C. ErrorKB 增长用例(手动):
 
 D. 契约对齐自检(交付前,非技术成员执行):
 
-    对照契约 §2.2 v1.2 skill_diagnose.parsed 字段(11 字段强制集),逐字段核 DiagnosisReport.to_parsed() 输出。
+    对照契约 §2.2 v1.2 skill_diagnose.parsed 字段(13 字段强制集,含 _schema),逐字段核 DiagnosisReport.to_parsed() 输出。
     对照契约 §2.6,核 A 产出的 ErrorItem 字段完整性(code/namespace/tool/severity/message/evidence/fix_suggestion)。
     对照契约 §2.3 as_tool 映射表,核 ToolResult.parsed 含 _skill_status/_iterations/_trajectory/_patch_source/_convergence_cause/_best_iter,
         且 A 的 _patch_source=="none"、_convergence_cause=="none"、_best_iter==-1(符合 A 恒定语义)。

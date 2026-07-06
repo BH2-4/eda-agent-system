@@ -337,8 +337,8 @@ C 位于 L4,夹在 L5(对外接口层)与 L3(Tool Registry)之间。L5 把人类
 
     RunReport 字段(契约 §2.0):
         run_id / status("ok"|"failed"|"budget_exhausted") / report_path /
-        summary / metrics(dict, 契约 §2.4 v1.2 锁定 13 字段标准集)
-    C 填的 metrics(v1.2 锁定 13 字段,与契约 §2.4 + experiment_manifest.json 一一对应):
+        summary / metrics(dict, 契约 §2.4 v1.2 锁定 15 字段标准集)
+    C 填的 metrics(v1.2 锁定 15 字段,与契约 §2.4 + experiment_manifest.json 一一对应):
         {
           "planner_iterations": int,
           "tool_calls_total": int,
@@ -1006,7 +1006,7 @@ API key 走环境变量 `ANTHROPIC_API_KEY` / `DASHSCOPE_API_KEY` / `DEEPSEEK_AP
 4. **report.md 的渲染深度**:MVP 一页(状态+steps 表+metrics);是否要嵌入 trajectory 可视化(mermaid)?非技术成员可做,但集训 4 天工期紧。
 5. **MCP server 是否进 MVP**:契约列为加分项。如果评审现场会用 Claude Code 调,MCP 是大加分;如果只看 report.md,可不做。请定夺优先级。
 6. **experiment_manifest.json 的 fault_type 分类粒度**:契约 §2.4 列 4 类(syntax/comb_logic/timing_reset/bitwidth)。非技术成员准备 inject bug 时,3 类够不够?是否需第 4 类凑齐?
-7. **RunReport.metrics 是否标准化字段集**:[v1.2 已裁决] 契约 §2.4 已锁定 13 字段标准集(含 self_heal_pass_rate / baseline_pass_rate),本文 §5.5 已对齐。原 minor#13(v1.1 允许 MVP 自由填)已升级处理。本决策关闭。
+7. **RunReport.metrics 是否标准化字段集**:[v1.2 已裁决] 契约 §2.4 已锁定 15 字段标准集(含 self_heal_pass_rate / baseline_pass_rate),本文 §5.5 已对齐。原 minor#13(v1.1 允许 MVP 自由填)已升级处理。本决策关闭。
 8. **C 是否要在 self_heal 收敛后自动追加一次 final iverilog_sim 验证 B 的 patch 真的过**:[v1.2 已裁决] 必加,作为 MVP 主流程非 open question。B 报 all_pass 后 C 强制追加独立 iverilog_sim 验证步(读 B.best/rtl.v),通过后才置 goal_achieved(契约 §10 agentic 自检 + §10.3 必过C)。多 1 步 tool call,演示可信度显著提升。本决策关闭。
 
 ---
