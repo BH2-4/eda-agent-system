@@ -1,0 +1,36 @@
+{
+  "overall_pass_rate": 0.875,
+  "min_group_pass_rate": 0.5,
+  "by_fault_type": {
+    "timing_reset": {
+      "total": 2,
+      "passed": 2,
+      "pass_rate": 1.0,
+      "mean_iters": 5.0,
+      "mean_best_iter": 2.0
+    },
+    "bitwidth": {
+      "total": 2,
+      "passed": 2,
+      "pass_rate": 1.0,
+      "mean_iters": 5.0,
+      "mean_best_iter": 2.0
+    },
+    "syntax": {
+      "total": 2,
+      "passed": 2,
+      "pass_rate": 1.0,
+      "mean_iters": 5.0,
+      "mean_best_iter": 2.0
+    },
+    "comb_logic": {
+      "total": 2,
+      "passed": 1,
+      "pass_rate": 0.5,
+      "mean_iters": 5.0,
+      "mean_best_iter": 0.5
+    }
+  },
+  "total_runs": 8,
+  "total_passed": 7
+}

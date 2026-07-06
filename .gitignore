@@ -10,8 +10,9 @@ build/
 dist/
 .pytest_cache/
 
-# 运行产物(EDA run 工件)
-runs/
+# 运行产物(EDA run 工件)— eval_snapshot 例外(track 作评审替代证据)
+runs/*
+!runs/eval_snapshot/
 # iverilog 编译产物(runs/ 下动态生成,data/examples/ 残留不 track)
 *.vvp
 # 工具运行错误日志(ivl/vvp stderr 残留)

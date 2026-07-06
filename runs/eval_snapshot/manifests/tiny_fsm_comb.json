@@ -1,0 +1,16 @@
+{
+  "run_id": "20260705_162907_878a",
+  "baseline_run_id": null,
+  "design_id": "tiny_fsm_comb",
+  "fault_type": "comb_logic",
+  "baseline_pass_rate": null,
+  "self_heal_pass_rate": 0.0,
+  "self_heal_convergence": "regression",
+  "self_heal_best_iter": -1,
+  "planner_iterations": 5,
+  "llm_calls": 6,
+  "tokens_total": 14341,
+  "wall_time_s": 412.83012189999863,
+  "candidates_at_best_score": 0,
+  "contract_version": "0.1.0"
+}

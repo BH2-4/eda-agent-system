@@ -1,0 +1,16 @@
+{
+  "run_id": "20260705_162903_ab72",
+  "baseline_run_id": null,
+  "design_id": "adder_pipe_comb",
+  "fault_type": "comb_logic",
+  "baseline_pass_rate": null,
+  "self_heal_pass_rate": 1.0,
+  "self_heal_convergence": "all_pass",
+  "self_heal_best_iter": 2,
+  "planner_iterations": 5,
+  "llm_calls": 2,
+  "tokens_total": 1589,
+  "wall_time_s": 44.445158600006835,
+  "candidates_at_best_score": 1,
+  "contract_version": "0.1.0"
+}
