@@ -132,7 +132,14 @@ class CPlanner:
                         self._settings.planner_mode == "llm"
                         and not request.extra.get("baseline_only")
                     ):
-                        action = self._llm_next_action(state, record, budget)
+                        # B all_pass 后强制独立验证步(与 EXECUTING/rule 分支 line 116
+                        # 对称;契约裁决④:C 不信任 B 自报,必须用 best_rtl_ref 第三方
+                        # 校验)。llm 模式下若交给 LLM 决策 args,LLM 会误用原始
+                        # rtl_path(而非 B 修复的 best_rtl_ref)→ 独立验证 sim_passed=None。
+                        if state.pending_self_heal_all_pass:
+                            action = self._verify_after_self_heal(state, request)
+                        else:
+                            action = self._llm_next_action(state, record, budget)
                         if action is None:
                             phase = "REPORTING"
                         else:
