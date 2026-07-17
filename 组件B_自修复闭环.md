@@ -14,7 +14,7 @@ B 是一个**复合 skill**(L2,契约 §1),对外注册为 Tool(走契约 §2.1 
 
 - 输入:一份 RTL 源(`rtl_path`)+ 一份 TB(`tb_path`)+ 一个目标(`goal`,如 "pass all tests")+ 可选的 A 诊断器结果(`diagnose`)+ 迭代上限(`max_iter`)。
 - 内部循环:`综合 → 失败则诊断→patch` / `仿真 → 失败则诊断→patch` / `(可选)时序 → 违例则诊断→patch`,直到全通过(`all_pass`)或触发停机条件。
-- 输出:`SkillResult`,经 `as_tool()` 映射为 `ToolResult`(契约 §2.3),其中 `_skill_status / _convergence_cause / _best_iter / _patch_source` 是评委判定"迭代是真的、智能也是真的"的契约级证据(契约 §2.3 设计要点 + §10 agentic 自检)。
+- 输出:`SkillResult`,经 `as_tool()` 映射为 `ToolResult`(契约 §2.3),其中 `_skill_status / _convergence_cause / _best_iter / _patch_source` 是判定"迭代是真的、智能也是真的"的契约级证据(契约 §2.3 设计要点 + §10 agentic 自检)。
 
 ### 1.2 不做什么(明确边界,与 A / C / 工具的切分)
 
@@ -25,7 +25,7 @@ B 是一个**复合 skill**(L2,契约 §1),对外注册为 Tool(走契约 §2.1 
 | 不做任务分解 / 工具发现 / LLM tool-use 回环 | C(CPlanner,L4) | B 是被 C 调用的 Tool,**不**反向编排 C;B 内部的 LLM 调用只用于"出 patch"这一窄任务,不进入 ReAct 工具选择。 |
 | 不生成独立 run_id | runner.py(契约 §2.4) | B 的每一轮子 Tool 调用以 `StepRecord` 追加到父 RunRecord,标 `skill_name="self_heal"` + `iter=N`,不嵌套 RunRecord。 |
 | 不修不可修的 bug | (人工) | B 的 demo 验收基线是"修预 inject 的已知可修 bug"(契约 §7 + §11 裁决);对结构性设计错误(架构级),B 降级为"只报诊断不自动改"(见 §6 防退化降级)。 |
-| 不做多模态 / 版图 / PnR | 加分项(不在 MVP) | 契约 §7 MVP 边界明确。 |
+| 不做多模态 / 版图 / PnR | 可选项(不在 MVP) | 契约 §7 MVP 边界明确。 |
 
 ### 1.3 一句话定位
 
@@ -227,7 +227,7 @@ B 处于契约 §1 的 L2(Skills),与 A 并列;二者都通过 `as_tool()` 注�
 
 字段级注释要点:
 
-- `HealGoal.pass_mode="all"` 是 MVP 默认(契约 §5 e2e 示例的 goal 就是 "pass all tests");`at_least` 模式预留,集训期再补解析。
+- `HealGoal.pass_mode="all"` 是 MVP 默认(契约 §5 e2e 示例的 goal 就是 "pass all tests");`at_least` 模式预留,后续再补解析。
 - `PatchOutcome.patch_source` 与 `SkillResult.patch_source` 取值集**完全一致**(契约 §2.3),B 在每轮记录后,`SkillResult.patch_source` 取**最后一次尝试**的来源(即使 applied=False;仅当"全程一次 LLM 都没调"即 convergence=budget 且 iterations=0 时才为 "none")。失败 run 的 patch_source 也应记录"最后一次尝试的 source"(契约 §10 agentic 自检 v1.2)。
 - `IterSnapshot.num_passed` 是 `best_iter` 判定的唯一数值依据(防退化核心):
   - 初始:`best_iter = -1`,`best_score = -1`(v1.2:best_iter 初始 -1 而非 0,语义"无任何轮通过仿真")。
@@ -659,14 +659,14 @@ LLM 调用边界:B 内部 LLM 调用**只用于出 patch**(prompt = 系统+出�
     iverilog    >= 12.0     # apt install iverilog;含 vvp
     opensta     >= 2.3      # 源码或 conda install -c openroad opensta;契约 §11 上调 MVP
 
-验证命令(Day0.5 前置 gate,契约 §7):
+验证命令(前置 gate,契约 §7):
 
     yosys -V && iverilog -V && vvp -V && sta -version
 
 ### 8.2 Python 库(pyproject.toml 依赖,契约 §6 已列)
 
     anthropic    >= 0.40    # ClaudeProvider(MVP 唯一 provider)
-    openai       >= 1.30    # 加分项:OpenAICompatProvider(Qwen/DeepSeek)
+    openai       >= 1.30    # 可选:OpenAICompatProvider(Qwen/DeepSeek)
     jsonschema   >= 4       # args schema 校验
     tomli        (py<3.11)  # settings.toml 解析
 
@@ -675,7 +675,7 @@ B 自身**不引入新的第三方依赖**(只依赖 contracts/registry/llm 的�
 ### 8.3 LLM
 
     主用:Anthropic Claude(claude-sonnet-4,settings.toml [llm] claude_model)
-    预留:OpenAI 兼容(Qwen-Plus / DeepSeek),经 OpenAICompatProvider,加分项不进 MVP 测试
+    预留:OpenAI 兼容(Qwen-Plus / DeepSeek),经 OpenAICompatProvider,可选项不进 MVP 测试
     API key:ANTHROPIC_API_KEY 环境变量(不进 settings.toml,不进 git,契约 §6)
 
 ### 8.4 RTL benchmark 来源(data/examples/,契约 §4 v1.2 唯一权威路径)
@@ -709,7 +709,7 @@ License 全部 MIT,在 `data/examples/LICENSE` 声明;自造样例避免拉外�
 
 ## 9. 实现步骤拆解(给新终端的有序子任务,每步带验证方法)
 
-> 假设前置 gate 已过:WSL2 yosys/iverilog/opensta 装好、contracts.py + registry + runner + LLMProvider + 三个 EDA Tool + skill_diagnose(A)已可调。本组件给 1 人约 1.5-2 天(Day6,契约 §7 排期)。
+> 假设前置 gate 已过:WSL2 yosys/iverilog/opensta 装好、contracts.py + registry + runner + LLMProvider + 三个 EDA Tool + skill_diagnose(A)已可调。本组件给 1 人约 1.5-2 天(Phase3,契约 §7 排期)。
 
 ### 步骤 B0:建文件骨架 + 类型对齐(0.5h)
 
@@ -807,7 +807,7 @@ License 全部 MIT,在 `data/examples/LICENSE` 声明;自造样例避免拉外�
 ### 步骤 B8:experiment_manifest 对比实验 + 文档对齐(0.5h,非技术成员协助)
 
     # 跑 6 个 inject bug 样例,每个产出一个 run 目录,汇总 experiment_manifest.json
-    # 与 A/C 文档做字段级互查(契约 §13 Day8 任务)
+    # 与 A/C 文档做字段级互查(契约 §13 Phase4 任务)
 
 验证:`python -m eda_agent.cli report <run_id>` 能渲染报告;三份文档字段互查 checklist 全过。
 
@@ -817,7 +817,7 @@ License 全部 MIT,在 `data/examples/LICENSE` 声明;自造样例避免拉外�
 
 > 本节指标与门槛**可直接照搬执行**,契合契约 §10 agentic 自检 + §7 B 验收基线。所有测试命令在项目根 `eda-agent-system/` 执行,WSL2 工具就绪。
 
-### 10.1 指标 1:自修复通过率(完赛奖第 3 条核心;v1.2 单一硬门槛,消除 v1.1 三套口径分叉)
+### 10.1 指标 1:自修复通过率(v1.2 单一硬门槛,消除 v1.1 三套口径分叉)
 
     指标:在 N>=8 个 healable=true inject bug 上,B 在 max_iter=5 内收敛到 all_pass 的比例(按 fault_type 分组取最小值)
     样例集:data/examples/ 下 healable=true 的 inject bug(见 §8.4 inject bug 矩阵;tiny_fsm 不进门槛集)
@@ -904,15 +904,15 @@ License 全部 MIT,在 `data/examples/LICENSE` 声明;自造样例避免拉外�
 | 风险 | 等级 | 对策 |
 | --- | --- | --- |
 | **LLM 出的 patch 语法错率高**,导致 max_iter 内修不动 | 高 | (1) diff 优先 + iverilog `-t null` 语法预检,坏 patch 不入栈;(2) 降级 full_rewrite;(3) 再降级 diagnose_only(只报诊断不自动改,本 run 仍产出可用 report);(4) prompt 强约束"只改出错行±5 行,别动其他"。 |
-| **iverilog 无结构化输出**,TB 打印协议是唯一信号源 | 高(契约 §2.2 已知限制) | B **不解析裸 stdout**,严格只读 `TEST_PASS n/total` 与 `TEST_FAIL <signal>` 协议行;`data/examples/*/tb.v` 全部遵守协议(Day3 偏 AI 成员负责);TB 协议违反时 B 视为 sim 编译失败而非误判通过。 |
+| **iverilog 无结构化输出**,TB 打印协议是唯一信号源 | 高(契约 §2.2 已知限制) | B **不解析裸 stdout**,严格只读 `TEST_PASS n/total` 与 `TEST_FAIL <signal>` 协议行;`data/examples/*/tb.v` 全部遵守协议(Phase2 偏 AI 成员负责);TB 协议违反时 B 视为 sim 编译失败而非误判通过。 |
 | **退化死锁**(LLM 反复出同一坏 patch / num_passed 逐轮下降) | 中 | v1.2 两套计数:`_maybe_rollback` 记 patch 应用失败 streak(策略升级);主循环 sim 分支记 num_passed 下降 streak;任一 >= 3 触发主动停机(convergence="regression"),不耗光预算;trajectory 记录每次退化事件。 |
 | **best_iter 语义歧义**(num_passed 相同时取哪轮) | 中 | v1.2 已裁决:tie-break 取**最早**达到 best_score 的轮(早收敛更优);meta.json 记 `best_iter` + `num_passed` + `candidates_at_best_score`(达到该 score 的轮数),人工可复核是否真发生过 tie。 |
 | **A 诊断器返回 root_causes 为空 / needs_rtl_patch=False 但仿真仍挂**(归因缺失) | 中 | B 不强依赖 A 完美;`_diagnose_and_patch` 在 root_causes 为空时,fallback 把 sim_res 的 `fail_signals` **先包装成 ErrorItem**(code=sim.fail_signal, severity=error)再喂 LLM(契约 §2.6 A→B 第 3 条,禁止裸字符串列表当 ErrorItem);包装后 LLM 仍可出 patch。 |
 | **预算双层仲裁被 B 独占**(C 饿死) | 中(契约 §2.3) | B 入口 `budget = min(self.budget_s, remaining)`,每轮入口检查;`budget_used_s` 字段如实上报,C 可事后审计。 |
-| **WSL2 工具未就绪**(Day0.5 gate 没过) | 高(契约 §7) | B 的 needs_eda 测试在工具缺失时 skip(`@pytest.mark.needs_eda`);mock provider 测试不依赖 EDA 工具,保证逻辑层先行可测。 |
+| **WSL2 工具未就绪**(前置 gate 没过) | 高(契约 §7) | B 的 needs_eda 测试在工具缺失时 skip(`@pytest.mark.needs_eda`);mock provider 测试不依赖 EDA 工具,保证逻辑层先行可测。 |
 | **artifact_ref 路径写错**(裸 str 而非 dict) | 低(但破坏契约) | `test_trace_integrity` 强校验 artifacts 元素形状是 `{"run_id":..,"rel_path":..}`;contracts 层加 `artifact_ref()` 工厂函数强制构造。 |
 | **国产 provider 切换时 tool_calls 归一雷**(契约 §11 裁决 5) | 低(MVP 不做) | MVP 只 ClaudeProvider;B 内部 LLM 调用不用 tool_calls(只出 patch 文本),provider 切换对 B 透明。 |
-| **inject bug 样例本身设计错**(可修性不可控) | 中 | fault_manifest.json 记每个 inject bug 的 ground-truth patch + 期望 fault_type;Day3 非技术成员 + 偏 AI 成员互查;B 验收前先用 ground-truth patch 手验"人能修",再让 B 修。 |
+| **inject bug 样例本身设计错**(可修性不可控) | 中 | fault_manifest.json 记每个 inject bug 的 ground-truth patch + 期望 fault_type;Phase2 非技术成员 + 偏 AI 成员互查;B 验收前先用 ground-truth patch 手验"人能修",再让 B 修。 |
 
 ---
 
@@ -920,16 +920,16 @@ License 全部 MIT,在 `data/examples/LICENSE` 声明;自造样例避免拉外�
 
 1. **goal 模板的覆盖范围**:MVP 只支持 "pass all tests" / "pass N tests" / "no timing violation" 三模板。是否需要支持更自由的 goal(如 "reduce cell area by 20%")?——倾向 MVP 不做(超出"自修复"语义,变成"优化")。
 
-2. **inject bug 的 8 个样例,谁来造、何时造**:[v1.2 已裁决] 偏 AI 成员 Day3 先把 8 个 inject bug + 对应 TB 全部写好(不依赖非技术成员学 Verilog,与其角色描述一致);非技术成员只做 fault_manifest.json 标注 + 实验记录整理。样例限定为"人能 < 5 行 diff 修"的高可修性故障(healable=true),tiny_fsm 状态错只作失败案例(healable=false)。
+2. **inject bug 的 8 个样例,谁来造、何时造**:[v1.2 已裁决] 偏 AI 成员 Phase2 先把 8 个 inject bug + 对应 TB 全部写好(不依赖非技术成员学 Verilog,与其角色描述一致);非技术成员只做 fault_manifest.json 标注 + 实验记录整理。样例限定为"人能 < 5 行 diff 修"的高可修性故障(healable=true),tiny_fsm 状态错只作失败案例(healable=false)。
 
-3. **STA 在 B 中是强制还是可选**:当前设计 `goal.sta_required=True` 才跑 STA(避免没 liberty 时报错)。但契约 §11 把 OpenSTA 上调 MVP。**需确认**:验收时是否要求至少 1 个 run 演示 STA 触发的 patch(adder_pipe timing bug)?——倾向"是,作为加分演示项,不进 50% 通过率硬门槛"。
+3. **STA 在 B 中是强制还是可选**:当前设计 `goal.sta_required=True` 才跑 STA(避免没 liberty 时报错)。但契约 §11 把 OpenSTA 上调 MVP。**需确认**:验收时是否要求至少 1 个 run 演示 STA 触发的 patch(adder_pipe timing bug)?——倾向"是,作为可选演示项,不进 50% 通过率硬门槛"。
 
 4. **best_iter tie-break 规则**:[v1.2 已裁决] 取**最早**达到 best_score 的轮;meta.json 加 `candidates_at_best_score` 字段供人工复核是否真发生过 tie。本决策关闭。
 
-5. **降级到 diagnose_only 时,本 run 算成功还是失败**:当前算失败(status="error",error_code="heal.reduced_to_diagnose"),但产出可用诊断报告。**需确认**评委视角算不算"完赛"——倾向算失败案例(契约 §7 第 2 条要的就是"真实有结构的失败"),report.md 里高亮"已降级为诊断模式"作为亮点。
+5. **降级到 diagnose_only 时,本 run 算成功还是失败**:当前算失败(status="error",error_code="heal.reduced_to_diagnose"),但产出可用诊断报告。**需确认**未通过算不算"失败案例"——倾向算失败案例(契约 §7 第 2 条要的就是"真实有结构的失败"),report.md 里高亮"已降级为诊断模式"作为亮点。
 
 6. **LLM 出 patch 的 prompt 是否要喂历史轨迹**:当前 prompt 只喂当前 RTL + 本轮 ErrorItem。**需确认**是否把前几轮失败的 patch 也喂进去(避免重复出相同坏 patch)——倾向"连续退化时把历史坏 patch 列入 prompt negative examples",作为防退化增强。
 
-7. **MVP 是否需要 rule_based patch_source**:当前三策略 diff/full_rewrite/diagnose_only,没有 rule_based。契约 §2.3 把 rule_based 列为合法值。**需确认**是否为"位宽 bug"这类高规则性故障写一个简单规则补丁(如 `reg [3:0]` → `reg [7:0]`)作为 fast path——倾向 MVP 不做(LLM 已能处理位宽),留集训期视通过率决定。
+7. **MVP 是否需要 rule_based patch_source**:当前三策略 diff/full_rewrite/diagnose_only,没有 rule_based。契约 §2.3 把 rule_based 列为合法值。**需确认**是否为"位宽 bug"这类高规则性故障写一个简单规则补丁(如 `reg [3:0]` → `reg [7:0]`)作为 fast path——倾向 MVP 不做(LLM 已能处理位宽),留后续视通过率决定。
 
 8. **experiment_manifest.json 的 self_heal_pass_rate 计算口径**:[v1.2 已裁决] 验收用**按 fault_type 分组的最小值**(更严,避免"只修简单类刷均值");均值作为辅助报进 experiment_summary.json.overall_pass_rate。单一硬门槛 = 分组最小值 >= 0.50 且 bitwidth 类至少 1 个 all_pass。本决策关闭。

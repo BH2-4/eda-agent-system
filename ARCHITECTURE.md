@@ -1,6 +1,6 @@
 # ARCHITECTURE.md — Agentic EDA 系统项目总览(doc v1.2)
 
-> 本文件是 Agentic4Systems 暑期学校 Hackathon 参赛系统的**项目总览**。完整契约(数据结构/接口签名/错误码/工件协议)见 `CONTRACTS.md`(权威);本文件吸收其精华做系统级呈现,引用时回指契约。验收细节见 `验收标准.md`,组件实现细节见三份组件文档。
+> 本文件是 Agentic EDA Agent System 的**项目总览**。完整契约(数据结构/接口签名/错误码/工件协议)见 `CONTRACTS.md`(权威);本文件吸收其精华做系统级呈现,引用时回指契约。验收细节见 `验收标准.md`,组件实现细节见三份组件文档。
 >
 > 约定:代码段 4 空格缩进,禁用反引号代码块。所有 `contract_version` 引用 `from eda_agent.contracts import CONTRACT_VERSION`,CONTRACT_VERSION = "0.1.0"。
 
@@ -8,35 +8,15 @@
 
 ## 1. 项目概述
 
-### 1.1 比赛与目标
+### 1.1 背景与目标
 
-- 比赛:Agentic4Systems 暑期学校 + Hackathon(北大/中科院计算所/复旦/深圳河套学院联合发起,2026-07-12 至 07-15 四天集训,07-15 11:00 提交)。
-- 赛道:Track 01 Agentic EDA Infra — 让智能体接入 EDA 工具链,完成设计生成 / 仿真验证 / 综合评估 / 错误分析 / 迭代优化,把芯片设计流程变成可执行闭环。
-- 目标奖项:完赛奖(3000 元,最基础档)。官方标准:奖励完成扎实系统组件、为整体基座贡献关键能力的团队;评审看重能被集成、能被验证、能推动基座继续生长的真实贡献。
+- 背景:RTL 设计中的 bug 定位与修复高度依赖人工,本系统用 Agent 把 diagnose→patch→验证 串成可执行闭环。
+- 目标:给定带 bug 的 RTL + 测试激励,系统能自主发现、修复、验证,直到通过测试或耗尽预算,且每次实验可追溯。
 
-### 1.2 完赛奖四条硬指标 → 系统映射
-
-    完赛奖硬指标              本系统落点                                    验收方式
-    ────────────────────── ─────────────────────────────────────── ──────────────────────────────────
-    (1) 真实可跑组件         A(skill_diagnose)+ B(skill_self_heal)+    tests/test_*_tool.py 真跑(needs_eda)
-                             Yosys/iverilog/OpenSTA 三 Tool 真跑通
-    (2) 清晰可调用接口       §5 CLI(eda self-heal/diagnose/report)+     eda self-heal --rtl ... 可直接调
-                             §5 SDK(run_pipeline)+ §5 MCP(加分)
-    (3) 实验证据/指标对比    runs/ 落轨迹 + experiment_manifest.json +   diff 两个 run 目录 + 聚合 summary
-                             experiment_summary.json + baseline run +
-                             fault_manifest.json
-    (4) EDA 三赛道且 agentic C 默认 LLM planner(ReAct)+ B 内部迭代 + patch 回退 + C 独立验证步
-
-agentic 充分性自检(防"会循环的 wrapper"判定,契约 §10):
-- C 默认 LLM planner 用 ReAct 组织工具(rule 仅作降级)。
-- B 的 patch_source / convergence_cause / best_iter 是契约级智能证据。
-- C 在 B 报 all_pass 后追加独立 iverilog_sim 验证步(第三方可信度)。
-- trajectory 可追溯每一轮的 patch diff、sim 结果、回退事件。
-
-### 1.3 团队与时间
+### 1.2 团队与时间
 
 - 团队:2 人核心(偏 AI/Agent/系统,数字前端 RTL 不熟)+ 1 人非技术(数据收集标注 / 实验记录整理 / 接口文档 / 演示脚本)。
-- 时间:9 天准备期(现在→07-11)+ 4 天集训(0712-0715,0715 11:00 提交)。
+- 阶段:Phase0 基座 → Phase1 三 Tool 封装 → Phase2 故障注入+provider → Phase3 A/B 组件 → Phase4 C+e2e。
 - 环境:Win11 + RTX3060 Laptop;EDA 工具跑 WSL2 Ubuntu(apt 装 yosys/iverilog,源码/conda 装 OpenSTA);agent 层 Python(本地,无需 GPU);LLM 主用 Claude API + provider 抽象预留国产模型(昇腾/壁仞/智子芯元)。
 
 ---
@@ -59,7 +39,7 @@ agentic 充分性自检(防"会循环的 wrapper"判定,契约 §10):
     │      本身也是 Tool(as_tool 注册),持有 self._llm + runner  │
     ├─────────────────────────────────────────────────────────────┤
     │  L1  EDA 工具封装  Yosys / iverilog / OpenSTA / KLayout...   │
-    │  +   LLM Provider 抽象  Claude(MVP)/ Qwen / DeepSeek(加分)│
+    │  +   LLM Provider 抽象  Claude(MVP)/ Qwen / DeepSeek(可选)│
     ├─────────────────────────────────────────────────────────────┤
     │  L0  工件存储  runs/<run_id>/  RunRecord + Artifacts         │
     └─────────────────────────────────────────────────────────────┘
@@ -159,7 +139,7 @@ agentic 充分性自检(防"会循环的 wrapper"判定,契约 §10):
         组件B_自修复闭环.md                  # B 组件设计文档
         组件C_Planner_ToolUse.md            # C 组件设计文档
         docs/
-            api.md                          # 接口速查(集训期补)
+            api.md                          # 接口速查(待补)
         src/eda_agent/
             __init__.py
             contracts.py                    # CONTRACT_VERSION + artifact_ref + ARTIFACT_FROM_STATE + §2 全部 dataclass
@@ -170,7 +150,7 @@ agentic 充分性自检(防"会循环的 wrapper"判定,契约 §10):
                 base.py                     # LLMProvider Protocol + Message/LLMResponse
                 counting.py                 # CountingProvider
                 claude_provider.py
-                openai_compat_provider.py   # 加分项
+                openai_compat_provider.py   # 可选扩展
                 factory.py                  # make_provider() → CountingProvider
             tools/
                 base.py                     # Tool Protocol + ToolResult + ToolCall
@@ -191,7 +171,7 @@ agentic 充分性自检(防"会循环的 wrapper"判定,契约 §10):
                 prompts.py
             runner.py                       # RunRecord 落盘 + run_id + 僵尸自愈 + append_step
             cli.py                          # L5 CLI(self-heal + diagnose + report)
-            mcp_server.py                   # 加分项
+            mcp_server.py                   # 可选扩展
         data/
             examples/                       # ★inject bug RTL+TB 唯一权威路径★
                 counter/{rtl.v,tb.v,rtl_bitwidth_bug.v,rtl_reset_bug.v,rtl_offbyone_bug.v,rtl_syntax_bug.v}
@@ -201,13 +181,13 @@ agentic 充分性自检(防"会循环的 wrapper"判定,契约 §10):
                 tiny_fsm/{rtl.v,tb.v,rtl_state_bug.v}      # healable=false(失败案例)
                 adder_pipe/{rtl.v,tb.v,rtl_timing_bug.v}   # STA 触发
                 LICENSE                     # MIT
-            lib/sky130_xx.lib               # STA liberty(Day0.5 gate 确认)
+            lib/sky130_xx.lib               # STA liberty(Phase0 前置 gate 确认)
             fault_manifest.json             # inject bug 清单(>=8 条)
             error_kb.json                   # A 的 ErrorKB(种子+增长,进 git)
             logs_corpus/{raw/,corpus.jsonl} # A 的诊断语料
         runs/                               # 运行产物,gitignore
             <run_id>/ ...
-            eval_snapshot/                  # 准备期预跑快照(评审无工具时替代证据)
+            eval_snapshot/                  # 预跑快照(评测机无工具时替代证据)
         scripts/
             build_corpus.py
             eval_diagnose.py
@@ -263,7 +243,7 @@ agentic 充分性自检(防"会循环的 wrapper"判定,契约 §10):
     report = run_pipeline(request, settings)
     print(report.report_path, report.status, report.metrics)
 
-### 5.3 MCP server(加分项)
+### 5.3 MCP server(可选扩展)
 
     # src/eda_agent/mcp_server.py(FastMCP)
     # 暴露:eda_agent.self_heal / eda_agent.report / eda_agent.<tool_name>(registry.to_mcp_tools)
@@ -290,24 +270,24 @@ agentic 充分性自检(防"会循环的 wrapper"判定,契约 §10):
     iverilog    >= 12.0      # apt install iverilog;含 vvp
     opensta     >= 2.3       # 源码或 conda install -c openroad opensta(契约 §11 上调 MVP)
 
-Day0.5 前置 gate:`yosys -V && iverilog -V && vvp -V && sta -version` 全部有输出,且 `yosys -p "synth -top counter; stat -json"` 跑通 hello-world;data/lib/ 有可用 liberty。
+Phase0 前置 gate:`yosys -V && iverilog -V && vvp -V && sta -version` 全部有输出,且 `yosys -p "synth -top counter; stat -json"` 跑通 hello-world;data/lib/ 有可用 liberty。
 
 ### 6.2 Python 库(pyproject.toml)
 
     python>=3.10
     anthropic>=0.40        # ClaudeProvider(MVP 唯一 provider)
-    openai>=1.30           # 加分项:OpenAICompatProvider(Qwen/DeepSeek)
+    openai>=1.30           # 可选扩展:OpenAICompatProvider(Qwen/DeepSeek)
     jsonschema>=4          # args schema 校验(下划线前缀 reserved 字段豁免)
     tomli; python_version<'3.11'   # settings.toml 解析(3.11+ 用 tomllib)
     # CLI:argparse(标准库)
-    # MCP 加分项:mcp>=1.0(FastMCP),optional dependency
+    # MCP 可选扩展:mcp>=1.0(FastMCP),optional dependency
 
 不依赖 LangGraph/LangChain(契约硬要求自研轻量循环)。C 不直接 subprocess(由 Tool 封装)。
 
 ### 6.3 LLM
 
     主用:Anthropic Claude(claude-sonnet-4,settings.toml [llm] claude_model)
-    预留:OpenAI 兼容(Qwen-Plus / DeepSeek),经 OpenAICompatProvider,加分项
+    预留:OpenAI 兼容(Qwen-Plus / DeepSeek),经 OpenAICompatProvider,可选扩展
     API key:ANTHROPIC_API_KEY 环境变量(不进 settings.toml,不进 git)
 
 ### 6.4 settings.toml 关键段(契约 §6)
@@ -341,40 +321,40 @@ Day0.5 前置 gate:`yosys -V && iverilog -V && vvp -V && sta -version` 全部有
 
 每个 Phase 给产出 + 验证方法。Phase 之间严格串行(后 Phase 依赖前 Phase 产出)。
 
-### Phase 0:Day0.5 前置 gate(0.5 天,两人共做)
+### Phase 0:前置 gate(环境就绪)
 
 - 产出:WSL2 yosys/iverilog/opensta 装好;data/lib/ 有 liberty;hello-world yosys synth 跑通。
 - 验证:`yosys -p "synth -top counter; stat -json"` 输出合法 JSON。
 - 不通过则:不写任何 Tool 封装,先把工具装好。
 
-### Phase 1:契约与基座(Day1-2,两人共做)
+### Phase 1:契约与基座
 
 - 产出:contracts.py(CONTRACT_VERSION + artifact_ref 工厂 + ARTIFACT_FROM_STATE + §2 全部 dataclass)+ errors.py + registry.py + settings.py + runner.py(含 append_step + 僵尸自愈)+ build_registry 工厂骨架。
 - 验证:`pytest tests/test_contracts.py -v` 全过(dataclass 字段完整性 + _schema 元字段 + artifact_ref 工厂返回形状);`pytest tests/test_registry.py` 全过。
 
-### Phase 2:EDA Tool + LLM provider(Day3-4,两人分工)
+### Phase 2:EDA Tool + LLM provider
 
 - 产出(AI 成员):8 个 inject bug + TB + fault_manifest.json(data/examples/,healable=true);ClaudeProvider + CountingProvider + make_provider 工厂。
 - 产出(系统成员):Yosys/iverilog/OpenSTA Tool(numeric 走 stat -json / TB 打印协议)+ 真跑单测。
 - 验证:`pytest tests/test_yosys_tool.py tests/test_iverilog_tool.py tests/test_opensta_tool.py -v -m needs_eda` 全过,parsed 字段齐全;inject bug 矩阵 >= 8 条入库。
 
-### Phase 3:Skills A + B(Day5-6,两人分工)
+### Phase 3:Skills A + B
 
-- 产出(AI 成员,Day5):A 诊断器(RuleLayer + LLMAttributor + ErrorKB + DiagnosisReport.to_parsed 含 11 字段;confidence 饱和项 + contradiction;Top-1 加权三支)。
-- 产出(系统成员,Day6):B 自修复(_stage_* + _diagnose_and_patch + 版本栈 + _maybe_rollback + 主循环;fail_signals 包装成 ErrorItem;best_iter tie-break 最早 + candidates_at_best_score)。
+- 产出(AI 成员):A 诊断器(RuleLayer + LLMAttributor + ErrorKB + DiagnosisReport.to_parsed 含 11 字段;confidence 饱和项 + contradiction;Top-1 加权三支)。
+- 产出(系统成员):B 自修复(_stage_* + _diagnose_and_patch + 版本栈 + _maybe_rollback + 主循环;fail_signals 包装成 ErrorItem;best_iter tie-break 最早 + candidates_at_best_score)。
 - 验证:`pytest tests/test_diagnose_skill.py tests/test_self_heal_skill.py -v`(含 mock + needs_eda 用例)全过;A 语料 Top-1 加权总分 >= 0.60。
 
-### Phase 4:C Planner + e2e + 对比实验(Day7-9,两人合流)
+### Phase 4:C Planner + e2e + 对比实验
 
-- 产出(Day7):CPlanner per-process + LLM planner(主)+ rule planner(降级)+ 独立验证步 + CLI 三子命令 + e2e 串联。
-- 产出(Day8):experiment_manifest + experiment_summary 对比实验(baseline vs self_heal 多 run 轨迹)+ 文档对齐(三份组件文档与契约字段级互查)。
-- 产出(Day9):buffer + 演示脚本 + 非技术成员整理实验记录 + eval_snapshot 预跑。
+- 产出:CPlanner per-process + LLM planner(主)+ rule planner(降级)+ 独立验证步 + CLI 三子命令 + e2e 串联。
+- 产出:experiment_manifest + experiment_summary 对比实验(baseline vs self_heal 多 run 轨迹)+ 文档对齐(三份组件文档与契约字段级互查)。
+- 产出:buffer + 演示脚本 + 非技术成员整理实验记录 + eval_snapshot 预跑。
 - 验证:
   - `pytest tests/test_e2e_pipeline.py -v -m needs_eda`(必过A 可执行性 + 必过B 修复效力至少 1 个 all_pass + 必过C 独立验证步)。
   - `scripts/summarize_eval.py` 产出 experiment_summary.json,min_group_pass_rate >= 0.50 且 bitwidth 类 >= 1 passed。
   - 三份组件文档与契约字段级互查 checklist 全过(非技术成员执行)。
 
-集训 4 天(0712-0715):稳定化 + 现场演示 + 按评审反馈补加分项(OpenAICompat / MCP)。
+稳定化阶段:稳定性优化 + 可选扩展(OpenAICompat / MCP)按需补充。
 
 ---
 
@@ -382,14 +362,14 @@ Day0.5 前置 gate:`yosys -V && iverilog -V && vvp -V && sta -version` 全部有
 
 | 风险 | 等级 | 对策 |
 |---|---|---|
-| WSL2 工具 Day0.5 没装好 | 高 | Day0.5 前置 gate;C 的 stub e2e(Step C5)保底不依赖真工具 |
+| WSL2 工具 Phase0 没装好 | 高 | Phase0 前置 gate;C 的 stub e2e(Step C5)保底不依赖真工具 |
 | LLM 不可用/限流 | 中 | `_call_llm_safe` 降级到规则 planner;规则 planner 不依赖 LLM |
 | LLM tool_calls 幻觉 | 中 | 契约 §2.5 强制 registry.get 校验 + eda.tool_not_found 回灌 |
 | LLM patch 语法错率高 | 高 | diff 优先 + iverilog -t null 预检,坏 patch 不入栈;降级 full_rewrite;再降级 diagnose_only |
 | 预算被 B 独占 | 中 | 双层预算仲裁:C 调 B 前算 remaining 经 _remaining_budget_s 下传;B 内 min(self.budget_s, remaining);settings 给 B 480s 子预算 |
-| inject bug 可修性不可控 | 中 | 偏 AI 成员 Day3 先写 8 个 bug + TB(非技术成员只标注);限定"人能 < 5 行 diff 修";healable=true 才进 50% 门槛集 |
-| 评审机无 EDA 工具 | 中 | needs_eda marker 评审时 skip;提交 runs/eval_snapshot/ 预跑快照 + experiment_manifest.json 截图作为替代证据 |
-| namespace/agentic 充分性被质疑 | 中 | planner_mode 默认 llm(ReAct);patch_source/convergence_cause/best_iter 入契约;C 独立验证步;演示主路径用 llm 模式 run |
+| inject bug 可修性不可控 | 中 | 偏 AI 成员先写 8 个 bug + TB(非技术成员只标注);限定"人能 < 5 行 diff 修";healable=true 才进 50% 门槛集 |
+| 评测机无 EDA 工具 | 中 | needs_eda marker 评测时 skip;提交 runs/eval_snapshot/ 预跑快照 + experiment_manifest.json 截图作为替代证据 |
+| namespace/agentic 充分性被质疑 | 中 | planner_mode 默认 llm(ReAct);patch_source/convergence_cause/best_iter 入契约;C 独立验证步;主路径用 llm 模式 run |
 | 对比实验"自己 inject 自己修"被质疑 | 高 | baseline run 定义锁死(yosys+iverilog 不调 B);fault_manifest.json 记 ground_truth_patch + healable;experiment_summary.json 分组最小值 |
 | 指标全绿但诊断无用 | 中 | confidence 加饱和项 + contradiction;Top-1 加权三支总分 >= 0.6;严格/宽松命中率同报 |
 
@@ -397,18 +377,18 @@ Day0.5 前置 gate:`yosys -V && iverilog -V && vvp -V && sta -version` 全部有
 
 ## 9. 待确认决策(给用户的开放问题)
 
-> 以下决策不影响 MVP 主路径推进,但集训期或评审反馈后可能需要调整。带 [v1.2 已裁决] 的已关闭。
+> 以下决策不影响 MVP 主路径推进,但后续迭代中可能需要调整。带 [v1.2 已裁决] 的已关闭。
 
 1. [v1.2 已裁决] planner_mode 默认值 → llm(rule 降级)。
 2. [v1.2 已裁决] best_iter tie-break → 取最早达到 best_score 的轮。
 3. [v1.2 已裁决] experiment_manifest pass_rate 口径 → 分组最小值(均值作辅助)。
 4. [v1.2 已裁决] C 独立验证步 → MVP 必加。
-5. [v1.2 已裁决] inject bug 谁造 → 偏 AI 成员 Day3 写(非技术成员只标注)。
+5. [v1.2 已裁决] inject bug 谁造 → 偏 AI 成员先写(非技术成员只标注)。
 6. [v1.2 已裁决] needs_rtl_patch 口径 → 按 severity 判。
 7. [开放] ErrorKB 持久化是否拆 seed/grown 两文件(A §12 #1)。
 8. [开放] Top-1 命中率是否引入 LLM-as-judge(A §12 #2,MVP 用关键词)。
 9. [开放] LLM planner 是否支持并行多 tool_calls(C §12 #2,MVP 取首)。
-10. [开放] MCP server 是否进 MVP(C §12 #5,默认加分项)。
-11. [开放] provider 切换对比实验是否集训期做(默认加分项,贴国产模型生态)。
+10. [开放] MCP server 是否进 MVP(C §12 #5,默认可选扩展)。
+11. [开放] provider 切换对比实验是否后续做(可选,贴国产模型生态)。
 
 完整 open questions 清单见各组件文档 §12 + CONTRACTS.md §12 minor 列表。
