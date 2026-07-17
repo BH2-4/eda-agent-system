@@ -1,4 +1,4 @@
-`YosysSynthTool` 是系统中 L1 层的第一个 EDA 工具封装，也是整条自修复流水线（综合→仿真→诊断→Patch）的起点。它将开源综合器 Yosys 的命令行调用包装为符合 `Tool` Protocol 的可调用对象，通过 `stat -json` 输出精确提取网表的结构化指标（cell 数、wire 数、端口数），并以 `ToolResult` 格式回传给上层编排器。本页聚焦其脚本构造策略、stat-json 解析算法、跨 WSL 路径转换以及下游消费契约，揭示 Day0.5 Gate 实测中沉淀的工程细节。
+`YosysSynthTool` 是系统中 L1 层的第一个 EDA 工具封装，也是整条自修复流水线（综合→仿真→诊断→Patch）的起点。它将开源综合器 Yosys 的命令行调用包装为符合 `Tool` Protocol 的可调用对象，通过 `stat -json` 输出精确提取网表的结构化指标（cell 数、wire 数、端口数），并以 `ToolResult` 格式回传给上层编排器。本页聚焦其脚本构造策略、stat-json 解析算法、跨 WSL 路径转换以及下游消费契约，揭示 前置 Gate 实测中沉淀的工程细节。
 
 Sources: [yosys_synth.py](../../src/eda_agent/tools/yosys_synth.py#L1-L13), [CONTRACTS.md](../../CONTRACTS.md)
 
@@ -36,7 +36,7 @@ read_verilog <rtl>; synth [-top <top_module>]; write_verilog <netlist>; stat -js
 
 其中 `synth` 的 `-top` 参数是可选的——当 `top_module` 为空时，yosys 自行推断顶层模块。`write_verilog` 将门级网表写到 `runs/<run_id>/synth/netlist.v`，供下游 OpenSTA 时序分析复用。`stat -json` 是最后一段，它将综合统计信息以 JSON 格式输出到 **stdout**（非 stderr），这是 `_parse_stat_json` 函数的输入源。
 
-Day0.5 Gate 实测揭示了两个必须遵守的硬约束。第一，**禁止在脚本内部使用 `>` 重定向**：yosys 将 `>` 解释为 selection 语法的一部分（如 `-selection >%`），而非 shell 重定向。第二，**stat-json 在 stdout 末尾**，前面混有大量 synth pass 的日志文本，不能用简单的 `json.loads(stdout)` 解析。
+前置 Gate 实测揭示了两个必须遵守的硬约束。第一，**禁止在脚本内部使用 `>` 重定向**：yosys 将 `>` 解释为 selection 语法的一部分（如 `-selection >%`），而非 shell 重定向。第二，**stat-json 在 stdout 末尾**，前面混有大量 synth pass 的日志文本，不能用简单的 `json.loads(stdout)` 解析。
 
 以下是参数校验阶段的实现细节——当 `rtl` 为空字符串或缺失时，工具立即返回 `error` 级别的 `ToolResult`，`error_code` 取 `eda.tool_args_invalid`，`parsed` 中所有数值字段归零、`artifacts` 为空列表，但 `_schema` 元字段仍然完整构造，保证下游消费者可以安全读取版本锚点而不触发 `KeyError`。
 
@@ -62,7 +62,7 @@ def _parse_stat_json(text: str) -> dict[str, Any] | None:
 
 解析出的 JSON 对象的 `modules` 字段是一个字典，键名带有 yosys **escaped identifier** 前缀反斜杠（如 `\counter`）。`_strip_yosys_id` 函数负责剥离这一前缀。模块选择策略是：如果调用方指定了 `top_module`，则在所有模块键中逐一匹配剥离后的名称；如果匹配失败或未指定 `top_module`，则取字典的第一个键作为 chosen module。
 
-stat-json 模块字段中包含 `num_cells` 和 `num_wires`，可直接读取。但 **`num_ports` 不在模块字段中**——这是 Day0.5 Gate 实测确认的一个 yosys 行为细节。YosysSynthTool 对此的处理是：从 stdout 文本中用正则 `Number of ports:\s*(\d+)` best-effort 抓取该行，找不到则保守置零并在代码注释中明确说明原因。而 `cell_area` 字段——在无 liberty 库提供的场景下 stat-json 中不包含面积信息——固定返回 `None`。
+stat-json 模块字段中包含 `num_cells` 和 `num_wires`，可直接读取。但 **`num_ports` 不在模块字段中**——这是 前置 Gate 实测确认的一个 yosys 行为细节。YosysSynthTool 对此的处理是：从 stdout 文本中用正则 `Number of ports:\s*(\d+)` best-effort 抓取该行，找不到则保守置零并在代码注释中明确说明原因。而 `cell_area` 字段——在无 liberty 库提供的场景下 stat-json 中不包含面积信息——固定返回 `None`。
 
 | parsed 字段 | 数据来源 | 类型 | 无数据时默认值 |
 |---|---|---|---|

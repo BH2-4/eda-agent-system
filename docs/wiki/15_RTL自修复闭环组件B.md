@@ -301,11 +301,11 @@ Sources: [self_heal.py](../../src/eda_agent/skills/self_heal.py#L369-L377), [sel
 
 ### patch_source 记录语义
 
-`patch_source` 记录**最后一次尝试的** Patch 来源（即使 `applied=False`）。仅当"全程一次 LLM 都没调"时才为 `"none"`。这确保评委能区分"LLM 给了 patch 但没通过仿真"（智能但不够好）和"根本没尝试 LLM"（流程缺陷）两种截然不同的失败模式。
+`patch_source` 记录**最后一次尝试的** Patch 来源（即使 `applied=False`）。仅当"全程一次 LLM 都没调"时才为 `"none"`。这确保能区分"LLM 给了 patch 但没通过仿真"（智能但不够好）和"根本没尝试 LLM"（流程缺陷）两种截然不同的失败模式。
 
 ### final_parsed 结构
 
-`final_parsed` 自带 `_schema` 元字段（契约 §2.1 强制），经 `as_tool()` 映射为 `ToolResult.parsed` 后，额外追加六个 `_skill_*` 元字段（`_skill_status` / `_skill_iterations` / `_skill_trajectory` / `_skill_patch_source` / `_skill_convergence_cause` / `_skill_best_iter`），这些是 CPlanner 和评委判定"迭代是真的、智能也是真的"的契约级证据。
+`final_parsed` 自带 `_schema` 元字段（契约 §2.1 强制），经 `as_tool()` 映射为 `ToolResult.parsed` 后，额外追加六个 `_skill_*` 元字段（`_skill_status` / `_skill_iterations` / `_skill_trajectory` / `_skill_patch_source` / `_skill_convergence_cause` / `_skill_best_iter`），这些是 CPlanner 判定"迭代是真的、智能也是真的"的契约级证据。
 
 | final_parsed 字段 | 类型 | 含义 |
 |:---|:---|:---|

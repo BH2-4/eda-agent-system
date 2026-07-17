@@ -253,7 +253,7 @@ Sources: [self_heal.py](../../src/eda_agent/skills/self_heal.py#L823-L900)
 - 即使 LLM 被调用但 patch 应用失败，`patch_source` 仍为 `llm_diff` 或 `llm_full_rewrite`（取决于当时使用的策略）
 - 只有在 diagnose_only（不调 LLM）或全程未触发 patch 流程时，`patch_source` 才为 `"none"`
 
-主循环通过 `last_patch_source` 变量追踪，只要 `outcome.patch_source != "none"` 就更新该变量。最终 `SkillResult.patch_source` 携带这个值，供上层 CPlanner 和评委判定迭代是否真正使用了 LLM 智能。测试 `TestPatchSourceOnFailure` 明确验证了"LLM patch 应用成功但仿真仍失败"时 `patch_source` 必须为非 `none` 值的契约。
+主循环通过 `last_patch_source` 变量追踪，只要 `outcome.patch_source != "none"` 就更新该变量。最终 `SkillResult.patch_source` 携带这个值，供上层 CPlanner 判定迭代是否真正使用了 LLM 智能。测试 `TestPatchSourceOnFailure` 明确验证了"LLM patch 应用成功但仿真仍失败"时 `patch_source` 必须为非 `none` 值的契约。
 
 Sources: [self_heal.py](../../src/eda_agent/skills/self_heal.py#L536-L537), [test_self_heal_skill.py](../../tests/test_self_heal_skill.py#L543-L602)
 
@@ -291,7 +291,7 @@ Sources: [self_heal.py](../../src/eda_agent/skills/self_heal.py#L829-L847), [sel
 
 1. **降低 token 消耗**：如果让 LLM 先决策策略再生成 patch，每次迭代需要两次 LLM 调用。写死阶梯只需一次调用（diagnose_only 甚至零次）。
 2. **消除决策不确定性**：LLM 在"选择策略"这一 meta 层面的表现不稳定，而"从精确到宽泛"是人类调试 RTL 的自然认知顺序，不需要模型重新发明。
-3. **可审计性**：固定阶梯使策略升级路径完全可预测——给定相同的输入序列，升级轨迹必然一致。这对实验复现和竞赛评审的可信度至关重要。
+3. **可审计性**：固定阶梯使策略升级路径完全可预测——给定相同的输入序列，升级轨迹必然一致。这对实验复现和实验复现的可信度至关重要。
 
 Sources: [组件B_自修复闭环.md](../../组件B_自修复闭环.md)
 

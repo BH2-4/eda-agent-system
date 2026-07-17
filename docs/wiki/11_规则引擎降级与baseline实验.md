@@ -2,7 +2,7 @@ CPlanner 在生产默认下走 LLM ReAct 回环，但系统同时内置一套完
 
 ## 双模架构：LLM 与 Rule 的分工哲学
 
-CPlanner 的 `planner_mode` 由 `settings.toml [planner] mode` 控制，默认值为 `"llm"`（契约裁决 #7：Track 01 agentic 充分性），`"rule"` 作为降级路径。两种模式共享同一套五相状态机（PLANNING → EXECUTING → REFLECTING → REPORTING → DONE），差异在于 **REFLECTING 相位的决策分支**：LLM 模式每次反射都调用 `_llm_next_action` 产生即时工具调用，规则模式则走 `_rule_after_reflect` 的确定性状态转移。
+CPlanner 的 `planner_mode` 由 `settings.toml [planner] mode` 控制，默认值为 `"llm"`（契约裁决 #7：保证 planner 真正组织工具迭代），`"rule"` 作为降级路径。两种模式共享同一套五相状态机（PLANNING → EXECUTING → REFLECTING → REPORTING → DONE），差异在于 **REFLECTING 相位的决策分支**：LLM 模式每次反射都调用 `_llm_next_action` 产生即时工具调用，规则模式则走 `_rule_after_reflect` 的确定性状态转移。
 
 | 维度 | rule 模式 | LLM 模式（默认） |
 |---|---|---|
@@ -190,7 +190,7 @@ flowchart LR
 
 ### T54 全量实验编排
 
-Phase 7 的 `.wf/phase7_t54_full.js` 并行启动 8 个 agent，每个 agent 调用 `run_self_heal.py --mode rule --run-budget 400` 跑一个 bug。所有 8 个 run 完成后，调用 `summarize_eval.py` 聚合，再由 Verify phase 判定 S1 门槛和良好线（6 个 healable=true 的 bug 全 all_pass）。
+Phase 7 的 `.wf/phase7_t54_full.js` 并行启动 8 个 agent，每个 agent 调用 `run_self_heal.py --mode rule --run-budget 400` 跑一个 bug。所有 8 个 run 完成后，调用 `summarize_eval.py` 聚合，再由 Verify phase 判定 S1 门槛（6 个 healable=true 的 bug 全 all_pass）。
 
 Sources: [c_planner.py](../../src/eda_agent/planner/c_planner.py#L659-L707), [summarize_eval.py](../../scripts/summarize_eval.py#L52-L111), [phase7_t54_full.js](../../.wf/phase7_t54_full.js#L45-L72), [run_self_heal.py](../../scripts/run_self_heal.py#L73-L115)
 
@@ -208,13 +208,13 @@ T54 全量实验（rule 模式，GLM-5.2 thinking max，run_budget=400s）的结
 
 **S1 门槛判定**：`min_group_pass_rate = min(1.0, 1.0, 1.0, 0.5) = 0.50 >= 0.50 ✓`，bitwidth 类 2/2 all_pass ✓——**S1 全过**。
 
-comb_logic 类的 0.5 通过率来自 `tiny_fsm_comb` 的 regression——这是数据集中**设计为不可修**的案例（`healable=false`），两态 FSM 的 S0 分支无条件 `next=S0` 导致 GLM-5.2 多轮 patch 未修对，触发 regression 死锁保护。T54 要求"≥1 失败案例"，此案例恰好满足。6 个 `healable=true` 的 bug 全部 `all_pass`（best_iter=2，wall_time 44-87s/bug），达成良好线。
+comb_logic 类的 0.5 通过率来自 `tiny_fsm_comb` 的 regression——这是数据集中**设计为不可修**的案例（`healable=false`），两态 FSM 的 S0 分支无条件 `next=S0` 导致 GLM-5.2 多轮 patch 未修对，触发 regression 死锁保护。T54 要求"≥1 失败案例"，此案例恰好满足。6 个 `healable=true` 的 bug 全部 `all_pass`（best_iter=2，wall_time 44-87s/bug），达成设计目标。
 
 ### rule vs LLM 模式对比结论
 
 实验团队在对比测试中发现，LLM 模式在跑 `counter_bitwidth` 时出现了**决策乱序**：LLM 先调 `skill_self_heal` 再调 `skill_diagnose`（顺序错误），self_heal 拿不到诊断信息浪费了约 550s 预算最终 budget_exhausted。rule 模式因确定性状态转移强制 synth→sim→diagnose→self_heal→独立验证的固定顺序，不存在此问题。
 
-最终决策是**两者互补**：全量实验用 rule 模式（确定性 + 快），演示 agentic 编排能力用 LLM 模式（完赛奖第 4 条）。这不是 rule "替代" LLM，而是针对不同评估维度选择合适的工具。
+最终决策是**两者互补**：全量实验用 rule 模式（确定性 + 快），演示 agentic 编排能力用 LLM 模式。这不是 rule "替代" LLM，而是针对不同评估维度选择合适的工具。
 
 Sources: [experiment_summary.json](../../experiment_summary.json), [docs/03_实验与失败案例报告.md](../03_实验与失败案例报告.md#L1-L105), [phase7_t54_full.js](../../.wf/phase7_t54_full.js#L102-L151)
 
@@ -233,4 +233,4 @@ Sources: [test_experiment_manifest.py](../../tests/test_experiment_manifest.py#L
 - 规则引擎的状态转移细节和 LLM ReAct 回环的完整实现，参见 [五相状态机：PLANNING 到 DONE 的流转](09_五相状态机Planning到Done.md) 和 [LLM ReAct 回环：工具决策与历史回灌](10_LLMReAct回环工具决策.md)。
 - 预算仲裁的双层机制（C 总预算 vs Skill 子预算），参见 [双层预算仲裁与迭代上限保护](13_双层预算仲裁与迭代上限.md)。
 - B 报 all_pass 后的独立验证步逻辑，参见 [独立验证步：B 报 all_pass 后的第三方校验](12_独立验证步第三方校验.md)。
-- 完整的 8-bug 设计矩阵和失败案例归档，参见 [故障注入清单与基准实验对比](27_故障注入清单与基准实验.md) 和 [实验聚合与通过率门槛（S1 达标规则）](28_实验聚合通过率门槛S1.md)。
+- 完整的 8-bug 设计矩阵和失败案例归档，参见 [故障注入清单与基准实验对比](27_故障注入清单与基准实验.md) 和 [实验聚合与通过率门槛（S1 门槛规则）](28_实验聚合通过率门槛S1.md)。
