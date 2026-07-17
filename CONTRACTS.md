@@ -1,8 +1,8 @@
 # CONTRACTS.md — Agentic EDA 系统共享契约(宪法) v1.2
 
-> 本文件是 Agentic4Systems Hackathon 参赛系统的**最高约束文档**。A(诊断器)/ B(RTL 自修复闭环)/ C(Planner / Tool-Use 层)三个组件,以及 Tool Registry、工件存储、LLM provider 抽象,都必须**严格遵守本文定义的数据结构与接口签名**。任何组件若与本文件冲突,以本文件为准。
+> 本文件是 Agentic EDA Agent System 的**最高约束文档**。A(诊断器)/ B(RTL 自修复闭环)/ C(Planner / Tool-Use 层)三个组件,以及 Tool Registry、工件存储、LLM provider 抽象,都必须**严格遵守本文定义的数据结构与接口签名**。任何组件若与本文件冲突,以本文件为准。
 >
-> 设计原则:开闭原则(加新 EDA 工具 / 加新 skill 不改核心)、最小可用(MVP 先跑通完赛奖四条硬指标)、可追溯(每次 run 一个目录,满足实验记录要求)、可集成(对外接口有版本锚点,schema 漂移可被检测)。
+> 设计原则:开闭原则(加新 EDA 工具 / 加新 skill 不改核心)、最小可用(MVP 聚焦四条核心目标)、可追溯(每次 run 一个目录,满足实验记录要求)、可集成(对外接口有版本锚点,schema 漂移可被检测)。
 >
 > 约定:所有抽象用 Python dataclass / Protocol / type hint 写死字段。代码 4 空格缩进,**禁止使用反引号代码块**(本文件正文用 4 空格缩进代码段呈现签名)。
 >
@@ -16,17 +16,17 @@
 > - `skill_self_heal.as_tool` args schema 扩展为 `{rtl, tb, diagnose, max_iter, goal, lib, clock, top_module}`(消除 B 内部 goal/lib/clock 永不触发的死路)。
 > - `remaining_budget_s` 传递通道明确:由 as_tool 适配层从 `ToolCall.args.pop("_remaining_budget_s", None)` 取出,作为 `Skill.run` 的位置参数下传;`_remaining_budget_s` 为 reserved 字段,registry.to_llm_tools 时剥离,不进 LLM 可见 schema,C 的 `_args_match_schema` 对下划线前缀字段豁免。
 > - Skill 构造统一注入 `runner`(StepRecorder 回调),消除 B 子步无法落 StepRecord 的断点;B/A 持有 provider 命名统一为 `self._llm`。
-> - 新增 baseline run 定义 + `fault_manifest.json` schema + 聚合层 `experiment_summary.json`,完赛奖第 3 条指标对比可复现。
+> - 新增 baseline run 定义 + `fault_manifest.json` schema + 聚合层 `experiment_summary.json`,实验指标对比可复现。
 > - `skill_diagnose.parsed.needs_rtl_patch` 升级为强制字段,派生口径锁死为**按 severity 判**(`error/fatal → True`),消除"按 namespace 前缀判"导致恒 False 的隐性断路器。
 > - 统一 inject bug RTL 目录为 `data/examples/`(契约 §4 目录树为唯一权威,B §8.4 / C §9 全部引用此路径)。
 > - CPlanner 构造签名锁为 per-process:`CPlanner(registry, llm, runner, settings)`,run_id/budget 在 `execute(request)` 内部生成。
-> - `planner_mode` 默认改为 `llm`(契合 Track 01 agentic 充分性),`rule` 作为 LLM 不可用时的降级路径。
+> - `planner_mode` 默认改为 `llm`(保证 planner 真正组织工具迭代),`rule` 作为 LLM 不可用时的降级路径。
 > - B 的自修复通过率门槛锁死为**单一硬门槛**:按 fault_type 分组取最小值 >= 0.50 且 bitwidth 类至少 1 个 `all_pass`。
 > - `confidence` 公式加饱和项;A 的 Top-1 命中改为加权三支总分 >= 0.6。
 > - C 在 B 报 all_pass 后**强制追加独立 iverilog_sim 验证步**(非 open question)。
 > - 文档登记位(docs/A_diagnoser.md / docs/B_self_heal.md / docs/C_planner.md)对齐状态见 §13。
 >
-> 文末附 §11 裁决说明(代表意见冲突时的取舍依据)与 §12 已知次要问题(minor 列表,留待集训期处理)。
+> 文末附 §11 裁决说明(代表意见冲突时的取舍依据)与 §12 已知次要问题(minor 列表,留待后续迭代处理)。
 
 ---
 
@@ -60,7 +60,7 @@
 - L3 Tool Registry:所有可被 C 调用的能力(EDA 工具 + skill)统一注册在此,C 只认 Tool 接口,不认具体实现。
 - L2 Skills:A 和 B 是高级 skill,内部可能调多个 Tool 并自己迭代,但对外仍是一个 Tool。
 - L1 基座:具体 EDA 工具的子进程封装 + LLM 调用的 provider 抽象。
-- L0 工件存储:每次 run 一个目录,记录完整轨迹,满足完赛奖的"实验记录 / 失败案例"要求。
+- L0 工件存储:每次 run 一个目录,记录完整轨迹,满足"实验记录 / 失败案例"的可追溯要求。
 
 组件代号 ↔ Tool name ↔ 文件名对照表(消除 A/B/C 代号与 Registry name 的混淆):
 
@@ -100,7 +100,7 @@
 
 ### 2.0 RunRequest / RunReport(对外入口契约)
 
-CLI 与 MCP 的入参/出参就是这两个 dataclass 的 schema。任何外部调用方(评审、别组 C、MCP client)据此构造合法请求。
+CLI 与 MCP 的入参/出参就是这两个 dataclass 的 schema。任何外部调用方(集成方、外部 CPlanner、MCP client)据此构造合法请求。
 
     from typing import Literal, Any
 
@@ -419,9 +419,9 @@ Skill 构造统一注入 runner(v1.2,消除 B 子步无法落 StepRecord 的断�
 
 设计要点:
 
-- Skill 区分 error 与 budget_exhausted:前者是真坏了,后者是没收敛但没崩。经 as_tool 后 budget_exhausted 在 ToolResult 三态里塌缩为 error,但 error_code=eda.budget_exhausted + parsed._skill_status 保留原值,C 可据此区分"真崩"与"没收敛"。完赛奖要的"失败案例"主要靠此状态。
+- Skill 区分 error 与 budget_exhausted:前者是真坏了,后者是没收敛但没崩。经 as_tool 后 budget_exhausted 在 ToolResult 三态里塌缩为 error,但 error_code=eda.budget_exhausted + parsed._skill_status 保留原值,C 可据此区分"真崩"与"没收敛"。"失败案例"的可追溯主要靠此状态。
 - max_iterations 与 budget_s 是硬约束,Skill 内部必须检查,超了立即停。
-- patch_source / convergence_cause / best_iter 是 B 智能性的契约级证据:trajectory + 这些字段本身即评委判定"迭代是真的、智能也是真的"的依据(scoring 代表 blocker 的解药)。
+- patch_source / convergence_cause / best_iter 是 B 智能性的契约级证据:trajectory + 这些字段本身即判定"迭代是真的、智能也是真的"的依据(scoring 代表 blocker 的解药)。
 - patch 回退契约:若新 patch 的 num_passed < 上一轮,则回退到上一版 RTL,trajectory 必须记录回退事件与 best_iter。
 - patch 施加方式优先用 diff/语义化编辑(llm_diff),整文件重写(llm_full_rewrite)仅在 diff 失败时降级使用。
 - 双层预算仲裁:C 调 Skill 前计算 `remaining = run_budget_s - elapsed`,经 `Action.args["_remaining_budget_s"] = remaining` 下传(as_tool 拆包);Skill 自身 budget_s 取 min(self.budget_s, remaining_budget_s)。run_budget_s 是 C 与所有 Skill 共享的上限,任一 Skill 不得独占。
@@ -499,7 +499,7 @@ RunRecord 数据结构:
         contract_version: str             # = CONTRACT_VERSION
         config_snapshot: dict[str, Any]   # 见下,实验可复现性
 
-config_snapshot 字段(完赛奖第 3 条"指标对比"与 provider 切换实验复现依据):
+config_snapshot 字段("指标对比"与 provider 切换实验复现依据):
 
     config_snapshot = {
         "llm": {"provider": "claude", "model": "claude-sonnet-4",
@@ -587,7 +587,7 @@ experiment_manifest.json(单 run 对比实验度量,scoring 代表 major 解药;
       "contract_version": "0.1.0"           // 与 contracts.py CONTRACT_VERSION 一致
     }
 
-baseline run 定义(v1.2,完赛奖第 3 条指标对比的复现依据):
+baseline run 定义(v1.2,指标对比的复现依据):
 
     baseline run = 对同一 inject bug RTL,C 的 plan 只跑 [yosys_synth, iverilog_sim]
                    (不调 diagnose、不调 self_heal、不调 STA),baseline_pass_rate =
@@ -630,7 +630,7 @@ RunReport.metrics 标准字段集(v1.2 锁定,与 experiment_manifest.json 一�
         "wall_time_s": float,
     }
 
-这套存储直接满足完赛奖第 3 条"实验证据 / 指标对比":每次实验一个目录,对比实验就是 diff 两个 run 目录 + 聚合 experiment_manifest.json 到 experiment_summary.json。
+这套存储直接满足"实验证据 / 指标对比":每次实验一个目录,对比实验就是 diff 两个 run 目录 + 聚合 experiment_manifest.json 到 experiment_summary.json。
 
 ### 2.5 LLM provider 抽象
 
@@ -690,7 +690,7 @@ LLM tool-use 回环闭合(integration 代表 major 解药):
 provider 实现口径(major:feasibility 解药):
 
 - MVP 只实现 **ClaudeProvider**,provider_name="claude"。
-- OpenAICompatProvider 封装 Qwen/DeepSeek 走 OpenAI 兼容接口,**列为加分项**,不进 MVP 测试。§6 settings.toml 的 qwen/deepseek 配置仅作注释示例。
+- OpenAICompatProvider 封装 Qwen/DeepSeek 走 OpenAI 兼容接口,**列为可选扩展**,不进 MVP 测试。§6 settings.toml 的 qwen/deepseek 配置仅作注释示例。
 - tool_calls 归一只需覆盖 Claude 一家(Anthropic tool_use block → 统一 {id,name,args})。
 
 计数器统一(minor:feasibility 解药):
@@ -709,8 +709,8 @@ namespace 登记约定(v1.2 正式登记 diagnose(A)与 heal(B)):
     synth      Yosys 综合领域
     sim        iverilog 仿真领域
     sta        OpenSTA 时序领域
-    drc        KLayout DRC(加分项)
-    pnr        nextpnr 布局布线(加分项)
+    drc        KLayout DRC(可选)
+    pnr        nextpnr 布局布线(可选)
     llm        LLM 调用领域
     diagnose   A 诊断器领域(v1.2 正式登记)
     heal       B 自修复领域(v1.2 正式登记)
@@ -759,7 +759,7 @@ MVP 13 个核心码(保留为 `eda.*` 别名,向后兼容):
 
 新工具示例(无需改核心表):
 
-    drc.violation            # KLayout DRC 违例(加分项)
+    drc.violation            # KLayout DRC 违例(可选)
     drc.lvs_mismatch         # LVS 不匹配
     pnr.routing_congested    # 布线拥塞
 
@@ -849,7 +849,7 @@ category 开放 str 推荐前缀(blocker:extensibility 解药,兑现开闭原则
 注册方式二选一:
 
 1. 显式注册(MVP 默认):在 `eda_agent.tools.bootstrap`(文件 `tools/bootstrap.py`)里集中 `registry.register(...)`,一目了然。
-2. 装饰器注册(加分项):`@tool(category="synth")` 装饰 Tool 实现类,启动时自动扫描。
+2. 装饰器注册(可选):`@tool(category="synth")` 装饰 Tool 实现类,启动时自动扫描。
 
 MVP 选显式注册,避免装饰器扫描的隐式性给 2 人团队带来调试负担。
 
@@ -871,14 +871,14 @@ build_registry 工厂(v1.2,统一注入 runner):
         registry.register(ToolEntry(tool=heal.as_tool(), name="skill_self_heal", category="skill", ...))
         return registry
 
-MCP 暴露(加分项,非 MVP):
+MCP 暴露(可选,非 MVP):
 
-    Registry 额外提供 to_mcp_tools(),把每个 Tool 包成 MCP tool 暴露。MCP 适配约定(集训期实施前必读):
+    Registry 额外提供 to_mcp_tools(),把每个 Tool 包成 MCP tool 暴露。MCP 适配约定(实施前必读):
     - 同步 Tool 用 asyncio.to_thread 包成 async。
     - ToolCall.args 直接作为 MCP tool 的 inputSchema 对应入参。
     - ToolResult.status="error" 时映射为 MCP error response,error_code 放进 data 字段。
     - MCP tool 命名加 namespace 前缀避免冲突:"eda_agent.yosys_synth"。
-    若集训评估 4 天做不完,降级为"仅 to_mcp_tools 签名存根,不实现",不要让加分项反噬 MVP。
+    若评估做不完,降级为"仅 to_mcp_tools 签名存根,不实现",不要让扩展项反噬 MVP。
 
 ---
 
@@ -895,7 +895,7 @@ MCP 暴露(加分项,非 MVP):
         组件B_自修复闭环.md                  # B 组件设计文档
         组件C_Planner_ToolUse.md            # C 组件设计文档
         docs/
-            api.md                          # 接口速查(集训期补)
+            api.md                          # 接口速查(待补)
         src/eda_agent/
             __init__.py
             contracts.py                    # §2 全部 dataclass / Protocol + CONTRACT_VERSION + artifact_ref
@@ -906,7 +906,7 @@ MCP 暴露(加分项,非 MVP):
                 base.py                     # LLMProvider Protocol + Message/LLMResponse
                 counting.py                 # CountingProvider 装饰器
                 claude_provider.py
-                openai_compat_provider.py   # Qwen / DeepSeek(加分项)
+                openai_compat_provider.py   # Qwen / DeepSeek(可选)
                 factory.py                  # make_provider() → CountingProvider
             tools/
                 base.py                     # Tool Protocol + ToolResult + ToolCall
@@ -927,7 +927,7 @@ MCP 暴露(加分项,非 MVP):
                 prompts.py
             runner.py                       # RunRecord 落盘 + run_id 生成 + 僵尸 run 自愈 + append_step
             cli.py                          # L5 CLI 子命令(self-heal + diagnose + report)
-            mcp_server.py                   # 加分项:MCP 暴露
+            mcp_server.py                   # 可选:MCP 暴露
         data/
             examples/                       # 示例 RTL + TB(含预 inject bug 版本)★唯一权威路径★
                 counter/
@@ -953,7 +953,7 @@ MCP 暴露(加分项,非 MVP):
                     rtl_timing_bug.v        # inject: wns<0(fault_type=timing_reset,STA 触发)
                 LICENSE                     # 全部 MIT(教学自造,无版权风险)
             lib/                            # 示例 liberty(.lib),STA 必备
-                sky130_xx.lib               # 非技术成员 Day2 前找开源小 liberty 放入
+                sky130_xx.lib               # 贡献者找开源小 liberty 放入
             fault_manifest.json             # inject bug 清单(schema 见下)
             error_kb.json                   # A 的 ErrorKB 种子 + 增长(进 git)
             logs_corpus/                    # A 的诊断语料
@@ -964,7 +964,7 @@ MCP 暴露(加分项,非 MVP):
                 corpus.jsonl                # 标注后的语料,一行一条(合法 JSON,无 // 注释)
         runs/                               # 运行产物,gitignore
             <run_id>/ ...
-            eval_snapshot/                  # v1.2:准备期预跑快照(评审无工具时的替代证据)
+            eval_snapshot/                  # v1.2:预跑快照(无 EDA 工具环境时的可复现证据)
         scripts/
             build_corpus.py                 # 语料组装 + schema 校验
             eval_diagnose.py                # A 的 Top-1 命中率/规则覆盖率评测
@@ -985,7 +985,7 @@ MCP 暴露(加分项,非 MVP):
             test_e2e_pipeline.py            # 端到端:需求 → report
             test_independent_verify.py      # C 在 B all_pass 后的独立 iverilog_sim 验证步(C §10.3 必过C / 验收 C13)
 
-fault_manifest.json schema(v1.2 新增,完赛奖第 3 条复现依据):
+fault_manifest.json schema(v1.2 新增,复现依据):
 
     {
       "version": "1.0",
@@ -1008,7 +1008,7 @@ fault_manifest.json schema(v1.2 新增,完赛奖第 3 条复现依据):
     # 50% 通过率门槛只在 healable=true 子集上算(B §10.1)。
 
 tests 目录的真跑测试用 pytest marker 区分 `@pytest.mark.needs_eda`,CI 无工具时跳过。
-评审无工具时,提交 runs/eval_snapshot/ 下准备期预跑的真实 run 目录作为替代证据(见 验收标准.md)。
+无 EDA 工具环境时,用 runs/eval_snapshot/ 下预跑的真实 run 目录作为可复现证据(见 验收标准.md)。
 
 ---
 
@@ -1060,7 +1060,7 @@ CPlanner.execute 内部一次典型迭代(以 self_heal 为例,含 v1.2 独立�
             "top_module": request.top_module,
             "_remaining_budget_s": remaining,
         }))
-        # r5.parsed._skill_status / _convergence_cause / _best_iter 即评委看的"智能证据"
+        # r5.parsed._skill_status / _convergence_cause / _best_iter 即可审计的"智能证据"
         # 6. v1.2:B 报 all_pass 后,C 追加独立 iverilog_sim 验证步(读 B.best/rtl.v)
         if r5.parsed.get("_convergence_cause") == "all_pass":
             best_ref = r5.parsed["fixed_rtl_ref"]   # artifact_ref 指向 best/rtl.v
@@ -1084,15 +1084,15 @@ CPlanner.execute 内部一次典型迭代(以 self_heal 为例,含 v1.2 独立�
 - run_id:`YYYYmmdd_HHMMSS_<4位hex>`。
 - error_code:二段式 `namespace.code`(如 `eda.budget_exhausted`)。
 - LLM provider 持有命名:Skill 内统一为 `self._llm`(下划线表内部持有)。
-- MCP tool 名(加分项):`eda_agent.<tool_name>` 加 namespace 前缀。
+- MCP tool 名(可选):`eda_agent.<tool_name>` 加 namespace 前缀。
 - 工件传递占位常量:`ARTIFACT_FROM_STATE = "<from_state>"`(contracts.py 导出),RulePlanner 用此标记需工件注入的字段。
 
 配置管理(settings.toml,v1.2 补 planner_mode + skill 子预算 + liberty 默认):
 
     [llm]
-    provider = "claude"            # claude(MVP 唯一)| qwen | deepseek(加分项)
+    provider = "claude"            # claude(MVP 唯一)| qwen | deepseek(可选)
     claude_model = "claude-sonnet-4"
-    # qwen_base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"   # 加分项,注释
+    # qwen_base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"   # 可选,注释
     # qwen_model = "qwen-plus"
     temperature = 0.0
     max_tokens = 4096
@@ -1104,10 +1104,10 @@ CPlanner.execute 内部一次典型迭代(以 self_heal 为例,含 v1.2 独立�
     vvp_cmd = "vvp"
     opensta_cmd = "sta"
     tool_timeout_s = 120
-    default_lib_path = "data/lib/sky130_xx.lib"   # v1.2:Day3 STA 验收默认 liberty
+    default_lib_path = "data/lib/sky130_xx.lib"   # v1.2:STA 验收默认 liberty
 
     [planner]                      # v1.2 新增段
-    mode = "llm"                   # rule | llm;v1.2 默认 llm(契合 Track 01 agentic 充分性)
+    mode = "llm"                   # rule | llm;v1.2 默认 llm(保证 planner 真正组织工具迭代)
     max_iterations = 8
 
     [budget]
@@ -1142,12 +1142,12 @@ pyproject.toml 关键项:
 
 ## 7. MVP 边界(2 人 9 天可行性,v1.2 调整)
 
-完赛奖四条硬指标 → MVP 必须做(打勾对应硬指标):
+MVP 核心目标 → 必须做:
 
 - [x] 真实可跑组件:Yosys 综合 + iverilog 仿真 + OpenSTA 时序 三个 Tool 真跑通(WSL2 apt 装),A 诊断器真调 LLM 产出结构化归因,B 自修复真迭代至少 1 轮。
 - [x] 清晰接口:§2 全部 dataclass(含 §2.0 RunRequest/RunReport)+ CLI `eda self-heal / diagnose / report` 子命令可调。
-- [x] 实验证据:runs/ 落轨迹 + experiment_manifest.json + experiment_summary.json,准备期跑通至少 4 个示例设计 × 8 个 inject bug,对比 baseline vs self_heal 分故障类型的修复成功率(单一硬门槛见下)。
-- [x] EDA 三赛道且 agentic:C 默认 LLM planner 用 ReAct 组织工具迭代,B 内部迭代+自修复(含 patch 回退),C 在 B 报 all_pass 后追加独立验证,非一次性脚本。
+- [x] 实验证据:runs/ 落轨迹 + experiment_manifest.json + experiment_summary.json,跑通至少 4 个示例设计 × 8 个 inject bug,对比 baseline vs self_heal 分故障类型的修复成功率(单一硬门槛见下)。
+- [x] agentic 充分:C 默认 LLM planner 用 ReAct 组织工具迭代,B 内部迭代+自修复(含 patch 回退),C 在 B 报 all_pass 后追加独立验证,非一次性脚本。
 
 B 自修复验收基线(v1.2 单一硬门槛,消除 v1.1 三套口径分叉):
 
@@ -1159,7 +1159,7 @@ MVP 必做清单(优先级从高到低):
 
 1. contracts.py 全部 dataclass + artifact_ref 工厂 + ARTIFACT_FROM_STATE 常量 + 单测(2.0-2.6,含 _schema 元字段)。
 2. ToolRegistry + 显式注册 + build_registry(provider, runner, settings)(category 开放 str + parsed_schema_ref)。
-3. **Day0.5 前置 gate**:WSL2 装 yosys+iverilog+opensta + 跑 hello-world 综合(工具没装好前不写 Tool 封装);确认 data/lib/ 有可用 liberty。
+3. **前置 gate**:WSL2 装 yosys+iverilog+opensta + 跑 hello-world 综合(工具没装好前不写 Tool 封装);确认 data/lib/ 有可用 liberty。
 4. Yosys / iverilog / OpenSTA Tool + parsed 解析(§2.2 schema,numeric 走 stat -json / TB 打印协议)+ 真跑单测。
 5. RunRecord 落盘 + runner.append_step(run_id, call, result, skill_name, iter)+ run_id 生成 + status.json / config_snapshot / 僵尸 run 自愈。
 6. LLMProvider 抽象 + ClaudeProvider + CountingProvider + make_provider() 工厂。
@@ -1170,26 +1170,26 @@ MVP 必做清单(优先级从高到低):
 11. CLI 三个子命令(self-heal + diagnose + report)。
 12. 8 个 inject bug + 端到端 e2e 测试 + baseline vs self_heal 对比实验记录(experiment_summary.json 汇总)。
 
-加分项(有余力再做,不阻塞完赛奖):
+可选扩展(有余力再做,不阻塞 MVP):
 
 - OpenAICompatProvider 接 Qwen / DeepSeek,做 provider 切换的对比实验(贴国产模型生态)。
-- MCP server 暴露 Registry(to_mcp_tools + FastMCP),让别组能调我们的 Tool。
+- MCP server 暴露 Registry(to_mcp_tools + FastMCP),让外部集成方能调我们的 Tool。
 - 装饰器式 Tool 注册。
 - 更多示例设计(状态机 / FIFO)+ 更难故障注入(组合逻辑错、时序错)。
 - KLayout 版图 / DRC Tool(category="layout"/"drc")、nextpnr(category="pnr")。
 
-9 天排期建议(2 人,v1.2 调整):
+开发阶段建议(2 人,v1.2 调整):
 
-- Day0.5:WSL2 装 yosys+iverilog+opensta + 跑 hello-world 综合前置 gate + 确认 data/lib/。
-- Day1-2:contracts(含 artifact_ref 工厂 / ARTIFACT_FROM_STATE / §2.3 as_tool 映射 + reserved 拆包 / §2.4 隶属关系)+ registry + build_registry + settings + 落盘框架(两人共做基座)。
-- Day3:**偏 AI 成员**写 8 个 inject bug + 对应 TB + fault_manifest.json(不依赖非技术成员学 Verilog);**偏系统成员**做 Yosys/iverilog/OpenSTA Tool(numeric 走 stat -json)。
-- Day4:ClaudeProvider + CountingProvider + CPlanner 骨架(默认 LLM 模式,降级 rule)/ Tool 真跑单测 + TB 打印协议。
-- Day5:A 诊断器(confidence 规则校准 + 饱和项 + contradiction + Top-1 加权)。
-- Day6:B 自修复(含 patch 回退、best_iter、convergence_cause、fail_signals 包装)。
-- Day7:e2e 串联(含 B all_pass 后独立验证)+ 示例设计 + 跑通(单点能跑通)。
-- Day8:experiment_manifest + experiment_summary 对比实验(baseline vs self_heal 多 run 轨迹)+ 文档对齐(A/B/C 三份文档与契约字段级互查)。
-- Day9:buffer + 演示脚本 + 非技术成员整理实验记录 + eval_snapshot 预跑。
-- 集训 4 天(0712-0715):稳定化 + 现场演示 + 按评审反馈补加分项(OpenAICompat/MCP)。
+- Phase0(前置):WSL2 装 yosys+iverilog+opensta + 跑 hello-world 综合前置 gate + 确认 data/lib/。
+- Phase1:contracts(含 artifact_ref 工厂 / ARTIFACT_FROM_STATE / §2.3 as_tool 映射 + reserved 拆包 / §2.4 隶属关系)+ registry + build_registry + settings + 落盘框架(两人共做基座)。
+- Phase2:**偏 AI 成员**写 8 个 inject bug + 对应 TB + fault_manifest.json(不依赖非核心成员学 Verilog);**偏系统成员**做 Yosys/iverilog/OpenSTA Tool(numeric 走 stat -json)。
+- Phase2.5:ClaudeProvider + CountingProvider + CPlanner 骨架(默认 LLM 模式,降级 rule)/ Tool 真跑单测 + TB 打印协议。
+- Phase3:A 诊断器(confidence 规则校准 + 饱和项 + contradiction + Top-1 加权)。
+- Phase3.5:B 自修复(含 patch 回退、best_iter、convergence_cause、fail_signals 包装)。
+- Phase4:e2e 串联(含 B all_pass 后独立验证)+ 示例设计 + 跑通(单点能跑通)。
+- Phase4.5:experiment_manifest + experiment_summary 对比实验(baseline vs self_heal 多 run 轨迹)+ 文档对齐(A/B/C 三份文档与契约字段级互查)。
+- 收尾:buffer + 贡献者整理实验记录 + eval_snapshot 预跑。
+- 稳定化阶段:稳定性优化 + 按需补可选扩展(OpenAICompat/MCP)。
 
 ---
 
@@ -1229,17 +1229,11 @@ contract_version 与 parsed_schema_ref.version 关系:
 
 ---
 
-## 10. 与完赛奖四条硬指标的对齐矩阵
+## 10. Agentic 自检清单
 
-    完赛奖硬指标              契约落点                                    验收方式
-    ────────────────────── ─────────────────────────────────────── ──────────────────────────────
-    (1) 真实可跑组件         §2.2 四 Tool + §2.3 A/B skill            tests/test_*_tool.py 真跑(needs_eda)
-    (2) 清晰可调用接口       §2.0 RunRequest/RunReport + §6 CLI       eda self-heal --rtl ... 可直接调
-    (3) 实验证据/指标对比    §2.4 runs/ + manifest + summary +        diff 两个 run 目录 + 聚合 summary
-                             baseline run + fault_manifest
-    (4) EDA 三赛道且 agentic §2.3 Skill 迭代 + patch 回退 + 独立验证  trajectory 含 convergence_cause/best_iter
+> 以下清单保证系统是真正的 agentic 编排(组织工具、迭代、自修复),而非"会循环的 wrapper"。每条都有对应契约字段或验证步骤。
 
-agentic 自检(防止被评委判定"会循环的 wrapper"):
+agentic 自检:
 - C 默认 LLM planner 用 ReAct 组织工具(非硬编码脚本);rule 模式仅作 LLM 不可用时的降级。
 - B 的 patch_source 必须有非 none 值(收敛成功的 run;llm_diff 优先),convergence_cause 必须真实记录。
 - 失败 run 的 patch_source 记录"最后一次尝试的 source"(即使 applied=False);只有"全程一次 LLM 都没调"(convergence=budget 且 iterations=0)才允许 none。
@@ -1255,15 +1249,15 @@ agentic 自检(防止被评委判定"会循环的 wrapper"):
 
 冲突 2:OpenSTA 是否 MVP 必做 → **上调 MVP**(理由同 v1.1)。
 
-冲突 3:CLI 子命令数量 → v1.2 调整为 **3 个**(self-heal + diagnose + report)。理由:diagnose 单点 demo 对评委展示 A 诊断器能力有显著加分,工程量 0.3 人天;run 仍由 self_heal 覆盖。
+冲突 3:CLI 子命令数量 → v1.2 调整为 **3 个**(self-heal + diagnose + report)。理由:diagnose 单点 demo 对展示 A 诊断器能力有显著价值,工程量 0.3 人天;run 仍由 self_heal 覆盖。
 
 冲突 4:错误码封闭表 vs 开放二段式 → **二段式 namespace.code + MVP 13 码降级为 eda.* 别名**(理由同 v1.1,v1.2 扩为 13 含 schema_mismatch)。v1.2 补:namespace 表正式含 diagnose/heal。
 
-冲突 5:provider 多实现是否 MVP → **MVP 只 ClaudeProvider,OpenAICompat 明确加分项**(理由同 v1.1)。
+冲突 5:provider 多实现是否 MVP → **MVP 只 ClaudeProvider,OpenAICompat 明确可选扩展**(理由同 v1.1)。
 
 冲突 6:stdout/stderr 裁剪策略 → **头 32KB + 尾 32KB + 中段标记 + 完整版落盘**(理由同 v1.1)。
 
-冲突 7(v1.2 新增):planner_mode 默认值 → **默认 llm**。理由:Track 01 原文要求"agent 组织工具、迭代、自修复",MVP 默认路径必须用 LLM planner 才能避免被评委会判定"会循环的 wrapper";rule 模式仅作 LLM 不可用时的降级(feasibility 保底)。
+冲突 7(v1.2 新增):planner_mode 默认值 → **默认 llm**。理由:保证"agent 组织工具、迭代、自修复"的主路径,MVP 必须用 LLM planner 才能避免被误判为"会循环的 wrapper";rule 模式仅作 LLM 不可用时的降级(feasibility 保底)。
 
 冲突 8(v1.2 新增):B 自修复通过率门槛 → **单一硬门槛(分组最小值 >= 0.50 且 bitwidth 类至少 1 all_pass)**。理由:v1.1 的"均值 50%"与"至少 1 个 bitwidth"双硬门槛并存使验收者无所适从;分组最小值避免"只修简单类刷均值",bitwidth 兜底保证"至少 1 个真修通"。
 
@@ -1271,15 +1265,15 @@ agentic 自检(防止被评委判定"会循环的 wrapper"):
 
 ---
 
-## 12. 已知次要问题(minor,留待集训期处理)
+## 12. 已知次要问题(minor,留待后续迭代处理)
 
-以下 minor 问题不阻塞 v1.2 交付,记录在此供集训期按需处理:
+以下 minor 问题不阻塞 v1.2 交付,记录在此供后续迭代按需处理:
 
-12. [minor]decorator 注册(加分项)与显式注册并存时的命名冲突检测未规定 —— 集训期若做装饰器再补。
+12. [minor]decorator 注册(可选)与显式注册并存时的命名冲突检测未规定 —— 后续若做装饰器再补。
 13. [minor]RunReport.metrics 字段集 —— v1.2 已在 §2.4 锁定标准字段集(原 minor 升级处理)。
-14. [minor]data/examples 的 liberty 库来源 —— v1.2 已在 §6 settings 加 default_lib_path,Day0.5 gate 确认(原 minor 升级处理)。
-15. [minor]tests 目录的 needs_eda marker 在 WSL 工具未就绪时的 fallback 策略 —— v1.2 明确:评审无工具时提交 runs/eval_snapshot/ 预跑快照作为替代证据(原 minor 升级处理)。
-16. [minor]LLM planner 每轮取首个 tool_call —— MVP 取首,集训期若评委看重"一次规划多步"再扩展(见 C 文档 open_question #2)。
+14. [minor]data/examples 的 liberty 库来源 —— v1.2 已在 §6 settings 加 default_lib_path,前置 gate 确认(原 minor 升级处理)。
+15. [minor]tests 目录的 needs_eda marker 在 WSL 工具未就绪时的 fallback 策略 —— v1.2 明确:无 EDA 工具环境时用 runs/eval_snapshot/ 预跑快照作为可复现证据(原 minor 升级处理)。
+16. [minor]LLM planner 每轮取首个 tool_call —— MVP 取首,后续若需"一次规划多步"再扩展(见 C 文档 open_question #2)。
 17. [minor]RunReport 是否标准化字段集 —— v1.2 已锁定(见 §2.4)。
 
 ---
@@ -1292,4 +1286,4 @@ agentic 自检(防止被评委判定"会循环的 wrapper"):
     - [x] 组件B_自修复闭环.md —— v1.2 已对齐 §2.3 SkillResult(patch_source/convergence_cause/best_iter=-1)/ patch 回退 / §2.4 iter 落盘 + runner 注入 / fail_signals 包装 / inputs.goal / data/examples/ 路径 / 单一硬门槛
     - [x] 组件C_Planner_ToolUse.md —— v1.2 已对齐 §2.0 RunRequest/RunReport + per-process CPlanner / §2.5 tool-use 回环 / §5 e2e + 独立验证步 / 双层预算仲裁 + reserved 拆包 / planner_mode 默认 llm / PlannerState.history
 
-ARCHITECTURE.md 吸收本契约精华(系统视图 + 端到端数据流 + Phase 排期),不重复完整契约正文,需引用时回指本文件。验收标准.md 把 A/B/C/系统集成的验收项汇总成可勾选表。交付前由非技术成员执行三份组件文档与本契约的字段级互查,列入 Day8 任务。
+ARCHITECTURE.md 吸收本契约精华(系统视图 + 端到端数据流 + Phase 排期),不重复完整契约正文,需引用时回指本文件。验收标准.md 把 A/B/C/系统集成的验收项汇总成可勾选表。交付前由贡献者执行三份组件文档与本契约的字段级互查。
