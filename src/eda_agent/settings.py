@@ -1,7 +1,7 @@
 """Settings(契约 §6 v1.2)。
 
 读 settings.toml → Settings dataclass。``[planner] mode`` 默认 ``"llm"``
-(契约裁决 #7:Track 01 agentic 充分性;rule 仅作 LLM 不可用时的降级)。
+(契约裁决 #7:保证 planner 真正组织工具迭代;rule 仅作 LLM 不可用时的降级)。
 
 API key 走环境变量(ANTHROPIC_API_KEY / DASHSCOPE_API_KEY / DEEPSEEK_API_KEY),
 不进 settings.toml,不进 git。

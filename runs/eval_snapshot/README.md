@@ -28,4 +28,4 @@ python scripts/summarize_eval.py --runs-dir runs --out experiment_summary.json
 
 ## 结果(2026-07-06)
 
-见 `verdict.md`(S1 硬门槛 + 良好线判定 + 8 bug 逐项)。
+见 `verdict.md`(S1 硬门槛 + 良好门槛判定 + 8 bug 逐项)。

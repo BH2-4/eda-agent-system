@@ -269,7 +269,7 @@ python -c "from eda_agent import run_pipeline; from eda_agent.contracts import R
 
 - **Phase 0-6 全完成**:契约 → L1 工具 → L2 Skill → L4 CPlanner → CLI/SDK → 实验/验收,逐步推进每步带 pytest 验证。
 - **200+ 单测全绿**,标记策略 `needs_eda`(WSL2 工具) / `needs_llm`(真实 LLM key)。
-- **GLM-5.2 e2e 真跑通**:8 个注入 bug 全量实验,总体通过率 87.5%(7/8),分组最小通过率 50% ≥ 50% 门槛,bitwidth 类 2/2 all_pass ≥ 1 门槛 → **S1 硬门槛达标 + 良好线**(综合通过率 0.875)。
+- **GLM-5.2 e2e 真跑通**:8 个注入 bug 全量实验,总体通过率 87.5%(7/8),分组最小通过率 50% ≥ 50% 门槛,bitwidth 类 2/2 all_pass ≥ 1 门槛 → **S1 硬门槛达标 + 良好门槛**(综合通过率 0.875)。
 - **实验快照**:`runs/eval_snapshot/verdict.md` 汇总 T54 全量 8 bug 结果,聚合规则与通过率门槛见 [实验聚合通过率门槛 S1](docs/wiki/28_实验聚合通过率门槛S1.md)。
 - **失败案例透明化**:`tiny_fsm_comb` 与 `tiny_fsm_reset` 标注 `healable=false`(FSM 状态转移自动修复当前 MVP 可靠性不足),系统诚实记录边界。
 
