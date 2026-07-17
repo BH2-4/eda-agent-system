@@ -15,7 +15,7 @@
 
 ### 1.2 团队与时间
 
-- 团队:2 人核心(偏 AI/Agent/系统,数字前端 RTL 不熟)+ 1 人非技术(数据收集标注 / 实验记录整理 / 接口文档 / 演示脚本)。
+- 团队:2 人核心(偏 AI/Agent/系统,数字前端 RTL 不熟)+ 1 人非技术(数据收集标注 / 实验记录整理 / 接口文档 / 演示材料)。
 - 阶段:Phase0 基座 → Phase1 三 Tool 封装 → Phase2 故障注入+provider → Phase3 A/B 组件 → Phase4 C+e2e。
 - 环境:Win11 + RTX3060 Laptop;EDA 工具跑 WSL2 Ubuntu(apt 装 yosys/iverilog,源码/conda 装 OpenSTA);agent 层 Python(本地,无需 GPU);LLM 主用 Claude API + provider 抽象预留国产模型(昇腾/壁仞/智子芯元)。
 
@@ -348,7 +348,7 @@ Phase0 前置 gate:`yosys -V && iverilog -V && vvp -V && sta -version` 全部有
 
 - 产出:CPlanner per-process + LLM planner(主)+ rule planner(降级)+ 独立验证步 + CLI 三子命令 + e2e 串联。
 - 产出:experiment_manifest + experiment_summary 对比实验(baseline vs self_heal 多 run 轨迹)+ 文档对齐(三份组件文档与契约字段级互查)。
-- 产出:buffer + 演示脚本 + 非技术成员整理实验记录 + eval_snapshot 预跑。
+- 产出:buffer + 演示材料整理 + 贡献者整理实验记录 + eval_snapshot 预跑。
 - 验证:
   - `pytest tests/test_e2e_pipeline.py -v -m needs_eda`(必过A 可执行性 + 必过B 修复效力至少 1 个 all_pass + 必过C 独立验证步)。
   - `scripts/summarize_eval.py` 产出 experiment_summary.json,min_group_pass_rate >= 0.50 且 bitwidth 类 >= 1 passed。

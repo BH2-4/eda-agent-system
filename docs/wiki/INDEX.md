@@ -1,6 +1,6 @@
 # EDA Agent System Wiki 索引
 
-> 本索引由 `scripts/gates/_rebuild_wiki.py` 从 zread wiki.json 确定性生成。
+> 本索引是 docs/wiki/ 下 31 个深度页的导航入口。
 
 
 | 字段 | 值 |
