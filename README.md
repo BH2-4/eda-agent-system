@@ -19,6 +19,8 @@
 | (3) 实验证据与指标对比 | `runs/` 轨迹 + `experiment_manifest` + `experiment_summary` + baseline 对比 |
 | (4) Agentic 充分 | C 默认 LLM planner + B 内部迭代 + patch 回退 + C 独立验证步 |
 
+> **可被集成 / 可被验证**:`CONTRACT_VERSION` 锚点 + `artifact_ref(run_id, rel_path)` 工件引用协议保证所有跨组件工件引用可程序化校验;A、B 两个 Skill 经 `as_tool()` 注册进 Registry,与 L1 EDA 工具等价调用,任一组件可独立复用;实验脚本能跑 baseline 与 self_heal 两路对比,C 在 B 报 `all_pass` 后追加独立验证步。
+
 > 详见 [项目概览与价值定位](docs/wiki/01_项目概览与价值定位.md)。
 
 ---
