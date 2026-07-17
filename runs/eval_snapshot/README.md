@@ -1,6 +1,6 @@
 # T54 实验快照(runs/eval_snapshot/)
 
-`runs/` 目录整体 gitignore(EDA run 工件体积大且环境相关),仅本 `eval_snapshot/` 例外 track,作 **评审替代证据**(契约 §12 #15:评审机无 EDA 工具时 `needs_eda` 测试 skip,以此快照证明实验真实跑通)。
+`runs/` 目录整体 gitignore(EDA run 工件体积大且环境相关),仅本 `eval_snapshot/` 例外 track,作 **可复现证据**(契约 §12 #15:无 EDA 工具环境时 `needs_eda` 测试 skip,以此快照证明实验真实跑通)。
 
 ## 复现命令(T54 全量 8 bug)
 
@@ -28,4 +28,4 @@ python scripts/summarize_eval.py --runs-dir runs --out experiment_summary.json
 
 ## 结果(2026-07-06)
 
-见 `verdict.md`(S1 硬门槛 + 良好线判定 + 8 bug 逐项)。
+见 `verdict.md`(S1 硬门槛 + 良好门槛判定 + 8 bug 逐项)。

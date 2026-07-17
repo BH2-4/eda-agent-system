@@ -1,4 +1,4 @@
-RunRecord 是 Agentic EDA 系统的 L0 工件存储核心——每一次用户请求从创建到终结的全生命周期轨迹，都被增量地、原子性地持久化到 `runs/<run_id>/` 目录树中。它不仅满足"实验记录 / 失败案例"的竞赛硬指标，更提供了跨进程可读、跨组件可引用、崩溃可自愈的完整追溯能力。本页深入解析 RunRecord 的数据结构、落盘时机、目录拓扑、日志裁剪策略、Skill 子步嵌入机制，以及僵尸 Run 自愈逻辑。
+RunRecord 是 Agentic EDA 系统的 L0 工件存储核心——每一次用户请求从创建到终结的全生命周期轨迹，都被增量地、原子性地持久化到 `runs/<run_id>/` 目录树中。它不仅满足"实验记录 / 失败案例"的可追溯要求，更提供了跨进程可读、跨组件可引用、崩溃可自愈的完整追溯能力。本页深入解析 RunRecord 的数据结构、落盘时机、目录拓扑、日志裁剪策略、Skill 子步嵌入机制，以及僵尸 Run 自愈逻辑。
 
 Sources: [runner.py](../../src/eda_agent/runner.py#L1-L14)
 
@@ -124,7 +124,7 @@ Sources: [self_heal.py](../../src/eda_agent/skills/self_heal.py#L667-L713), [c_p
 
 config_snapshot 包含五个维度：**llm**（provider、model、temperature、max_tokens）、**eda**（yosys_version、iverilog_version、opensta_version，由 CPlanner 在真跑工具后填充，Phase1/工具未就绪时为空 dict）、**contract_version**（= CONTRACT_VERSION）、**settings_hash**（settings.toml 的 SHA-256 前 12 位）、**planner_mode**（"llm" 或 "rule"）。
 
-`settings_hash()` 函数读取 settings.toml 文件的原始字节，计算 SHA-256 摘要并截取前 12 位。文件缺失时返回空串（表示用默认 Settings，无可复现哈希）。这个哈希值让评审或开发者可以快速判断两次 run 是否使用了相同的配置文件，是 provider 切换实验对比的核心依据。
+`settings_hash()` 函数读取 settings.toml 文件的原始字节，计算 SHA-256 摘要并截取前 12 位。文件缺失时返回空串（表示用默认 Settings，无可复现哈希）。这个哈希值让开发者可以快速判断两次 run 是否使用了相同的配置文件，是 provider 切换实验对比的核心依据。
 
 Sources: [runner.py](../../src/eda_agent/runner.py#L81-L104), [settings.py](../../src/eda_agent/settings.py#L146-L157)
 

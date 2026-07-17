@@ -1,4 +1,4 @@
-CONTRACTS.md 是整个 Agentic EDA 系统的**最高约束文档**——一份 1296 行的"宪法"，用 Python dataclass、Protocol 和 type hint 将所有跨组件数据结构与接口签名钉死。它不是事后补写的 API 文档，而是先于代码存在的设计契约：A（诊断器）、B（RTL 自修复闭环）、C（Planner / Tool-Use 层）三组件以及 Tool Registry、工件存储、LLM provider 抽象，都必须严格遵守其中定义的结构。本文深入剖析这套契约驱动机制的哲学基础、技术实现与治理体系，帮助你理解为何"先写契约、再写实现"能在一个 2 人 9 天的 Hackathon 项目中消除集成断点。
+CONTRACTS.md 是整个 Agentic EDA 系统的**最高约束文档**——一份 1296 行的"宪法"，用 Python dataclass、Protocol 和 type hint 将所有跨组件数据结构与接口签名钉死。它不是事后补写的 API 文档，而是先于代码存在的设计契约：A（诊断器）、B（RTL 自修复闭环）、C（Planner / Tool-Use 层）三组件以及 Tool Registry、工件存储、LLM provider 抽象，都必须严格遵守其中定义的结构。本文深入剖析这套契约驱动机制的哲学基础、技术实现与治理体系，帮助你理解为何"先写契约、再写实现"能在本项目中消除集成断点。
 
 Sources: [CONTRACTS.md](../../CONTRACTS.md), [contracts.py](../../src/eda_agent/contracts.py#L1-L8)
 
@@ -147,8 +147,8 @@ Sources: [CONTRACTS.md](../../CONTRACTS.md), [skills/base.py](../../src/eda_agen
 | `synth` | Yosys 综合领域 | v1.1 |
 | `sim` | iverilog 仿真领域 | v1.1 |
 | `sta` | OpenSTA 时序领域 | v1.1 |
-| `drc` | KLayout DRC（加分项） | v1.1 |
-| `pnr` | nextpnr 布局布线（加分项） | v1.1 |
+| `drc` | KLayout DRC（可选） | v1.1 |
+| `pnr` | nextpnr 布局布线（可选） | v1.1 |
 | `llm` | LLM 调用领域 | v1.1 |
 | **`diagnose`** | A 诊断器领域 | **v1.2 登记** |
 | **`heal`** | B 自修复领域 | **v1.2 登记** |
@@ -218,8 +218,8 @@ CONTRACTS.md §11 记录了 9 项设计裁决，每项都附有取舍理由。�
 | 冲突 | 裁决 | 核心理由 |
 |------|------|----------|
 | Skill 基类去留 | **保留** | 复用迭代控制/预算管理/落盘逻辑 |
-| OpenSTA 是否 MVP | **上调 MVP** | EDA 三赛道要求 |
-| CLI 子命令数 | **3 个** | diagnose 单点 demo 对评委加分显著 |
+| OpenSTA 是否 MVP | **上调 MVP** | 时序分析是核心能力之一 |
+| CLI 子命令数 | **3 个** | diagnose 单点 demo 对展示 A 诊断器能力价值显著 |
 | 错误码封闭 vs 开放 | **二段式 + 13 码别名** | 开闭原则 + 向后兼容 |
 | provider 多实现 | **MVP 只 Claude** | 可行性保底 |
 | stdout/stderr 裁剪 | **头32KB + 尾32KB + 落盘** | 不丢诊断证据 |

@@ -1,14 +1,14 @@
 # Agentic EDA 系统配置(契约 §6 v1.2)。API key 走环境变量,不进本文件。
-# planner_mode 默认 llm(契约裁决 #7:Track 01 agentic 充分性);rule 为降级路径。
+# planner_mode 默认 llm(契约裁决 #7:保证 planner 真正组织工具迭代);rule 为降级路径。
 
 [llm]
-provider = "glm"               # glm(智谱,默认) | claude(备用) | qwen | deepseek(加分项)
+provider = "glm"               # glm(智谱,默认) | claude(备用) | qwen | deepseek
 glm_model = "glm-5.2"          # GLM-5.2(OpenAI 兼容端点用裸名;[1m] 后缀仅 Anthropic 端点/Claude Code 用)
-glm_base_url = "https://open.bigmodel.cn/api/coding/paas/v4"  # Coding Plan OpenAI 兼容端点(非通用 /api/paas/v4,否则 429/1113)
+glm_base_url = "https://open.bigmodel.cn/api/coding/paas/v4"  # 智谱 OpenAI 兼容端点(非通用 /api/paas/v4,否则 429/1113)
 glm_thinking = true            # 思考模式(thinking.type=enabled,GLM-5.2 推荐)
 glm_reasoning_effort = "max"   # 推理努力档 max(最高性能调度)
 claude_model = "claude-sonnet-4"
-# qwen_base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"   # 加分项
+# qwen_base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"   # 可选 provider
 # qwen_model = "qwen-plus"
 temperature = 0.0
 max_tokens = 8192              # GLM-5.2 支持 1M 上下文,输出放宽到 8192
@@ -20,7 +20,7 @@ iverilog_cmd = "iverilog"
 vvp_cmd = "vvp"
 opensta_cmd = "sta"
 tool_timeout_s = 120
-default_lib_path = "data/lib/sky130_xx.lib"   # Day0.5 gate 确认的默认 liberty
+default_lib_path = "data/lib/sky130_xx.lib"   # 默认 liberty 工艺库
 
 [planner]                      # v1.2 新增段
 mode = "llm"                   # rule | llm;默认 llm(rule 仅作 LLM 不可用时降级)

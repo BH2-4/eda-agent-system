@@ -20,8 +20,8 @@ NAMESPACES: tuple[str, ...] = (
     "synth",     # Yosys 综合领域
     "sim",       # iverilog 仿真领域
     "sta",       # OpenSTA 时序领域
-    "drc",       # KLayout DRC(加分项)
-    "pnr",       # nextpnr 布局布线(加分项)
+    "drc",       # KLayout DRC(可选)
+    "pnr",       # nextpnr 布局布线(可选)
     "llm",       # LLM 调用领域
     "diagnose",  # A 诊断器领域(v1.2 登记)
     "heal",      # B 自修复领域(v1.2 登记)

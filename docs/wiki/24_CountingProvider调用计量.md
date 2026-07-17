@@ -214,5 +214,5 @@ flowchart TD
 
 - **[LLM Provider 抽象协议与多后端支持](23_LLMProvider抽象协议.md)**：`CountingProvider` 所包裹的 `GLMProvider` 和 `ClaudeProvider` 如何翻译统一的 `Message` / `tools` 格式为各 SDK 原生形状。
 - **[RunRecord 落盘与完整轨迹追溯](25_RunRecord落盘轨迹追溯.md)**：`CountingProvider` 的计数最终如何写入 `run.json` 的 `llm_calls` / `llm_tokens_in` / `llm_tokens_out` 字段。
-- **[实验聚合与通过率门槛（S1 达标规则）](28_实验聚合通过率门槛S1.md)**：`experiment_manifest.json` 中的 `llm_calls` 和 `tokens_total` 如何被 `summarize_eval.py` 聚合。
+- **[实验聚合与通过率门槛（S1 通过规则）](28_实验聚合通过率门槛S1.md)**：`experiment_manifest.json` 中的 `llm_calls` 和 `tokens_total` 如何被 `summarize_eval.py` 聚合。
 - **[五相状态机：PLANNING 到 DONE 的流转](09_五相状态机Planning到Done.md)**：`_finalize()` 阶段（REPORTING 相）在哪里读取计数并产出终态报告。

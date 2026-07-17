@@ -31,7 +31,7 @@ graph TB
     TR -->|"parsed + artifacts"| C
 ```
 
-该工具在 MVP 中被**强制上调为必做项**（CONTRACTS.md §11 裁决冲突 2），因为时序分析是 EDA 三赛道（综合/仿真/时序）之一，缺则无法满足完赛奖硬指标"真实可跑组件"的要求。
+该工具在 MVP 中被**强制上调为必做项**（CONTRACTS.md §11 裁决冲突 2），因为时序分析是 EDA 核心能力（综合/仿真/时序）之一，缺则无法满足"真实可跑组件"的要求。
 
 Sources: [CONTRACTS.md](../../CONTRACTS.md), [contracts.py](../../src/eda_agent/contracts.py#L101-L107)
 

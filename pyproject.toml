@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "eda-agent"
 version = "0.1.0"
-description = "Agentic EDA pipeline for Agentic4Systems Hackathon (CPlanner + Tool Registry + A diagnose + B self_heal)"
+description = "Agentic EDA pipeline: LLM planner + tool registry + diagnose + self-heal closed loop"
 requires-python = ">=3.10"
 dependencies = [
     "anthropic>=0.40",

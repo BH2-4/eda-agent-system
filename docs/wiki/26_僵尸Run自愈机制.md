@@ -190,4 +190,4 @@ Sources: [runner.py](../../src/eda_agent/runner.py#L312-L319)
 
 - **[双层预算仲裁与迭代上限保护](13_双层预算仲裁与迭代上限.md)** — `run_budget_s` 如何决定僵尸阈值的上限，以及 Budget 仲裁器与 Run 生命周期的关系
 - **[RunRecord 落盘与完整轨迹追溯](25_RunRecord落盘轨迹追溯.md)** — 正常 Run 的完整落盘策略，包括 step-level 增量写入
-- **[实验聚合与通过率门槛（S1 达标规则）](28_实验聚合通过率门槛S1.md)** — 僵尸 Run 如何通过 manifest 缺失被天然排除在聚合之外
+- **[实验聚合与通过率门槛（S1 通过规则）](28_实验聚合通过率门槛S1.md)** — 僵尸 Run 如何通过 manifest 缺失被天然排除在聚合之外

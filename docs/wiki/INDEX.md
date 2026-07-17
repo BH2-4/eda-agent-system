@@ -1,6 +1,6 @@
 # EDA Agent System Wiki 索引
 
-> 本索引由 `scripts/gates/_rebuild_wiki.py` 从 zread wiki.json 确定性生成。
+> 本索引是 docs/wiki/ 下 31 个深度页的导航入口。
 
 
 | 字段 | 值 |
@@ -45,7 +45,7 @@
 | 25 | RunRecord 落盘与完整轨迹追溯 | 深入解析 | 工件存储与实验评估 | Intermediate | [25_RunRecord落盘轨迹追溯.md](25_RunRecord落盘轨迹追溯.md) |
 | 26 | 僵尸 Run 自愈机制 | 深入解析 | 工件存储与实验评估 | Intermediate | [26_僵尸Run自愈机制.md](26_僵尸Run自愈机制.md) |
 | 27 | 故障注入清单与基准实验对比 | 深入解析 | 工件存储与实验评估 | Intermediate | [27_故障注入清单与基准实验.md](27_故障注入清单与基准实验.md) |
-| 28 | 实验聚合与通过率门槛（S1 达标规则） | 深入解析 | 工件存储与实验评估 | Intermediate | [28_实验聚合通过率门槛S1.md](28_实验聚合通过率门槛S1.md) |
+| 28 | 实验聚合与通过率门槛（S1 通过规则） | 深入解析 | 工件存储与实验评估 | Intermediate | [28_实验聚合通过率门槛S1.md](28_实验聚合通过率门槛S1.md) |
 | 29 | ErrorKB 错误知识库：模式匹配与增量增长 | 深入解析 | 工件存储与实验评估 | Advanced | [29_ErrorKB错误知识库.md](29_ErrorKB错误知识库.md) |
 | 30 | 测试框架与 needs_eda / needs_llm 标记策略 | 深入解析 | 测试体系与扩展指南 | Beginner | [30_测试框架needs_eda标记策略.md](30_测试框架needs_eda标记策略.md) |
 | 31 | 扩展新 EDA 工具的完整指南 | 深入解析 | 测试体系与扩展指南 | Intermediate | [31_扩展新EDA工具指南.md](31_扩展新EDA工具指南.md) |

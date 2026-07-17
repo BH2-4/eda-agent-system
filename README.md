@@ -1,8 +1,8 @@
-# Agentic EDA Agent System — Agentic4Systems Hackathon 参赛项目
+# Agentic EDA Agent System
 
-> Track 01 Agentic EDA Infra | 完赛奖 3000 元 | 提交截止 2026-07-15 11:00
+> Agentic EDA Infra — LLM 驱动的 RTL 自愈流水线（diagnose → patch → 验证 → 归档）
 > 团队:2 人核心(AI/Agent/系统) + 1 人非技术(数据/文档/演示)
-> 环境:Win11 + RTX3060 Laptop | EDA 工具跑 WSL2 Ubuntu-24.04(yosys 0.33 / iverilog 12.0) | LLM 用智谱 GLM Coding Plan(glm-5.2)
+> 环境:Win11 + RTX3060 Laptop | EDA 工具跑 WSL2 Ubuntu-24.04(yosys 0.33 / iverilog 12.0) | LLM 用智谱 GLM(glm-5.2)
 
 ---
 
@@ -10,14 +10,16 @@
 
 本项目把**芯片设计流程变成可执行闭环**:让 AI 智能体接入 EDA 工具链(Yosys 综合 / iverilog 仿真 / OpenSTA 时序),完成 设计生成 → 仿真验证 → 综合评估 → 错误分析 → 迭代优化 的全自动迭代,而非一次性脚本。
 
-给定一段带 bug 的 RTL 代码和测试激励,系统能自主发现问题、生成修复补丁、验证修复效果,直到通过所有测试或耗尽预算。它不是一个"会循环的 wrapper",而是一个可被反复调用、可追溯每一次实验轨迹的 Agent 流水线,落地为三个核心组件合成的可调用接口(C/A/B),并设计为满足完赛奖 4 条硬指标:
+给定一段带 bug 的 RTL 代码和测试激励,系统能自主发现问题、生成修复补丁、验证修复效果,直到通过所有测试或耗尽预算。它不是一个"会循环的 wrapper",而是一个可被反复调用、可追溯每一次实验轨迹的 Agent 流水线,落地为三个核心组件合成的可调用接口(C/A/B),围绕四条工程目标设计:
 
-| 完赛奖硬指标 | 本项目落点 |
+| 工程目标 | 本项目落点 |
 |---|---|
 | (1) 真实可跑组件 | A 诊断器 + B 自修复闭环 + Yosys/iverilog/OpenSTA 三 Tool 真跑通(WSL2) |
-| (2) 清晰可调用接口 | CLI(`eda self-heal`/`diagnose`/`report`) + Python SDK(`run_pipeline`) + MCP(加分) |
+| (2) 清晰可调用接口 | CLI(`eda self-heal`/`diagnose`/`report`) + Python SDK(`run_pipeline`) + MCP(可选) |
 | (3) 实验证据与指标对比 | `runs/` 轨迹 + `experiment_manifest` + `experiment_summary` + baseline 对比 |
-| (4) EDA 三赛道且 Agentic | C 默认 LLM planner + B 内部迭代 + patch 回退 + C 独立验证步 |
+| (4) Agentic 充分 | C 默认 LLM planner + B 内部迭代 + patch 回退 + C 独立验证步 |
+
+> **可被集成 / 可被验证**:`CONTRACT_VERSION` 锚点 + `artifact_ref(run_id, rel_path)` 工件引用协议保证所有跨组件工件引用可程序化校验;A、B 两个 Skill 经 `as_tool()` 注册进 Registry,与 L1 EDA 工具等价调用,任一组件可独立复用;实验脚本能跑 baseline 与 self_heal 两路对比,C 在 B 报 `all_pass` 后追加独立验证步。
 
 > 详见 [项目概览与价值定位](docs/wiki/01_项目概览与价值定位.md)。
 
@@ -193,33 +195,11 @@ stateDiagram-v2
 
 ---
 
-## 6. 比赛 / 完赛奖映射
-
-完赛奖官方标准:奖励完成扎实系统组件、为整体基座贡献关键能力的团队;评审看重**能被集成、能被验证、能推动基座继续生长**的真实贡献。本项目四条硬指标对应如下:
-
-| 完赛奖硬指标 | 本项目落点 |
-|---|---|
-| (1) 真实可跑组件 | A + B + Yosys/iverilog/OpenSTA 三 Tool 真跑通(WSL2) |
-| (2) 清晰可调用接口 | CLI(`eda self-heal`/`diagnose`/`report`) + SDK(`run_pipeline`) + MCP(加分) |
-| (3) 实验证据 / 指标对比 | `runs/` 落轨迹 + `experiment_manifest` + `experiment_summary` + **baseline 对比** |
-| (4) EDA 三赛道且 Agentic | C 默认 LLM planner + B 内部迭代 + patch 回退 + C 独立验证步 |
-
-**可被集成 / 可被验证**的关键工程卖点:
-
-- **CONTRACT_VERSION 锚点** + **`artifact_ref` 工件引用协议**:所有跨组件工件引用必须由 `artifact_ref(run_id, rel_path)` 构造,禁止裸字符串路径;集成方读取结构化数据前先校验 `contract_version="0.1.0"`,漂移可被程序化检测 → **可被集成**。
-- **`as_tool` 适配映射**:A、B 两个 Skill 经 `as_tool()` 包装注册进 Registry,L4 CPlanner 与 L1 EDA 工具完全等价调用,任一组件都可被独立复用 → **可被集成**。
-- **baseline vs self_heal 对比**:实验脚本能跑 baseline(只 synth+sim 建立基准通过率)与 self_heal(全闭环)两路,聚合脚本产出对比指标 → **可被验证**。
-- **C 在 B 报 `all_pass` 后必加独立 iverilog 验证步**:B 自报成功不等于 C 信任,第三方校验通过才置 `goal_achieved` → **可被验证**。
-
-> 详见 [契约驱动 CONTRACTS 权威机制](docs/wiki/04_契约驱动CONTRACTS权威机制.md)、[版本锚点与工件引用协议](docs/wiki/07_版本锚点与工件引用协议.md)、[故障注入清单与基准实验](docs/wiki/27_故障注入清单与基准实验.md)。
-
----
-
-## 7. 快速开始
+## 6. 快速开始
 
 ```bash
 # 前置:WSL2 Ubuntu-24.04 装好 yosys/iverilog(opensta 可选,未装则 STA 降级)
-# LLM key 写入 .env 的 GLM_API_KEY(智谱 Coding Plan 订阅,key 不进 git)
+# LLM key 写入 .env 的 GLM_API_KEY(智谱开放平台 key,key 不进 git)
 
 git clone <repo> && cd eda-agent-system
 pip install -e .
@@ -255,10 +235,10 @@ python -c "from eda_agent import run_pipeline; from eda_agent.contracts import R
 
 | 文件 | 角色 | 读者 |
 |---|---|---|
-| **README.md**(本文件) | 项目目标 + 比赛 + 五层架构 + 数据流 + 组件 + 快速开始 + 已裁决决策 + 进度 | 所有人先读 |
+| **README.md**(本文件) | 项目目标 + 五层架构 + 数据流 + 组件 + 快速开始 + 已裁决决策 + 进度 | 所有人先读 |
 | **ARCHITECTURE.md** | 项目总览(分层 + 端到端数据流 + 契约精华 + 目录树 + Phase 排期 + 风险) | 所有人 |
 | **CONTRACTS.md(宪法,权威)— 冲突时以此为准** | 全部 dataclass / Tool/Skill 接口 / 错误码 / 工件协议 | 实现者必读 |
-| 验收标准.md | 验收项汇总(可勾选表)+ 验收流程(Claude 如何验收) | 验收者 + 非技术成员 |
+| 验收标准.md | 验收项汇总(可勾选表)+ 验收流程 | 验收者 + 贡献者 |
 | 组件A_诊断器.md | A(skill_diagnose)设计文档 — 日志归因 + 修复建议 | A 实现者 |
 | 组件B_自修复闭环.md | B(skill_self_heal)设计文档 — RTL 自修复迭代闭环 | B 实现者 |
 | 组件C_Planner_ToolUse.md | C(CPlanner)设计文档 — Planner / Tool-Use 层 + CLI/MCP | C 实现者 |
@@ -281,7 +261,7 @@ python -c "from eda_agent import run_pipeline; from eda_agent.contracts import R
 7. **namespace 表含 diagnose(A)+ heal(B)**,C 按 namespace 聚类读 error_code(二段式 `namespace.code`)。
 8. **inject bug RTL 统一放 `data/examples/`**(唯一权威路径)。
 
-关键开放项(不阻塞 MVP,集训期定):ErrorKB 是否拆 seed/grown 两文件;Top-1 命中率是否引入 LLM-as-judge;LLM planner 是否支持并行多 tool_calls;MCP server / OpenAICompat 是否集训期做。
+关键开放项(不阻塞 MVP,后续迭代定):ErrorKB 是否拆 seed/grown 两文件;Top-1 命中率是否引入 LLM-as-judge;LLM planner 是否支持并行多 tool_calls;MCP server / OpenAICompat 是否后续做。
 
 ---
 
@@ -289,7 +269,7 @@ python -c "from eda_agent import run_pipeline; from eda_agent.contracts import R
 
 - **Phase 0-6 全完成**:契约 → L1 工具 → L2 Skill → L4 CPlanner → CLI/SDK → 实验/验收,逐步推进每步带 pytest 验证。
 - **200+ 单测全绿**,标记策略 `needs_eda`(WSL2 工具) / `needs_llm`(真实 LLM key)。
-- **GLM-5.2 Coding Plan e2e 真跑通**:8 个注入 bug 全量实验,总体通过率 87.5%(7/8),分组最小通过率 50% ≥ 50% 门槛,bitwidth 类 2/2 all_pass ≥ 1 门槛 → **完赛奖 S1 达标 + 良好线**(综合通过率 0.875)。
+- **GLM-5.2 e2e 真跑通**:8 个注入 bug 全量实验,总体通过率 87.5%(7/8),分组最小通过率 50% ≥ 50% 门槛,bitwidth 类 2/2 all_pass ≥ 1 门槛 → **S1 硬门槛达标 + 良好门槛**(综合通过率 0.875)。
 - **实验快照**:`runs/eval_snapshot/verdict.md` 汇总 T54 全量 8 bug 结果,聚合规则与通过率门槛见 [实验聚合通过率门槛 S1](docs/wiki/28_实验聚合通过率门槛S1.md)。
 - **失败案例透明化**:`tiny_fsm_comb` 与 `tiny_fsm_reset` 标注 `healable=false`(FSM 状态转移自动修复当前 MVP 可靠性不足),系统诚实记录边界。
 
@@ -301,5 +281,4 @@ python -c "from eda_agent import run_pipeline; from eda_agent.contracts import R
 
 - **契约版本**:`CONTRACT_VERSION = "0.1.0"`([CONTRACTS.md](CONTRACTS.md) 锚点,`contracts.py` 常量)。
 - **文档版本**:本 README 对齐 CONTRACTS.md v1.2 与 docs/wiki/ 深度页(zread 版本 id=2026-07-06-180551)。
-- **比赛提交截止**:**2026-07-15 11:00**。
 - **问题排查顺序**:先 **[CONTRACTS.md](CONTRACTS.md)(权威,冲突时以此为准)** → ARCHITECTURE.md(总览) → 对应组件文档 → docs/wiki/INDEX.md(深度页)。

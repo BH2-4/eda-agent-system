@@ -2,7 +2,7 @@
 
 > 对齐共享契约 `CONTRACTS.md` v1.2(CONTRACT_VERSION="0.1.0")。本文任何与契约不一致处,以契约为准。
 >
-> 实现文件:`src/eda_agent/planner/c_planner.py`(主)、`src/eda_agent/planner/rule_planner.py`、`src/eda_agent/planner/llm_planner.py`、`src/eda_agent/planner/prompts.py`(prompt)、`src/eda_agent/cli.py`(L5 入口)、`src/eda_agent/mcp_server.py`(加分项)。
+> 实现文件:`src/eda_agent/planner/c_planner.py`(主)、`src/eda_agent/planner/rule_planner.py`、`src/eda_agent/planner/llm_planner.py`、`src/eda_agent/planner/prompts.py`(prompt)、`src/eda_agent/cli.py`(L5 入口)、`src/eda_agent/mcp_server.py`(可选扩展)。
 >
 > 约定:所有代码用 Python type hint / dataclass 风格,4 空格缩进,**禁止使用反引号代码块**。所有 contract_version 引用必须 `from eda_agent.contracts import CONTRACT_VERSION`,禁止裸字符串。CPlanner 为 per-process 构造(run_id 在 execute 内生成)。
 
@@ -52,7 +52,7 @@ C 位于 L4,夹在 L5(对外接口层)与 L3(Tool Registry)之间。L5 把人类
 ### 2.1 调用关系图(端到端一次 self_heal)
 
     ┌─────────────────────────────────────────────────────────────────┐
-    │  L5 用户/评审/MCP client                                        │
+    │  L5 用户/集成方/MCP client                                        │
     │     eda self-heal --rtl ... --tb ... --goal "pass all tests"   │
     └──────────────────────────────┬──────────────────────────────────┘
                                    │ RunRequest(kind="self_heal",...)
@@ -94,9 +94,9 @@ C 位于 L4,夹在 L5(对外接口层)与 L3(Tool Registry)之间。L5 把人类
 
 - **C → Registry.get**:每次执行必经(强耦合,契约 §2.5 规定)。
 - **C → Skill(A/B)**:plan 决定调不调。self_heal 流程必调 B;诊断 step 调 A。
-- **C → LLM**:主路径。MVP 两种 planner 模式:(a) **LLM planner**(ReAct,LLM 发 tool_calls,**v1.2 默认**,契合 Track 01 agentic 充分性);(b) **规则 planner**(确定性 plan,无需 LLM 即可跑 synth→sim→sta→diagnose→self_heal,作为 LLM 不可用时的降级路径)。
+    - **C → LLM**:主路径。MVP 两种 planner 模式:(a) **LLM planner**(ReAct,LLM 发 tool_calls,**v1.2 默认**,保证 planner 真正组织工具迭代);(b) **规则 planner**(确定性 plan,无需 LLM 即可跑 synth→sim→sta→diagnose→self_heal,作为 LLM 不可用时的降级路径)。
 
-> 取舍说明(v1.2 调整契约 §11 冲突7):默认 `planner_mode=llm`,让 C 的 plan-execute 走 ReAct 调 LLM 组织工具(避免被评委会判定"会循环的 wrapper");`rule` 模式仅作 LLM 不可用时的降级(feasibility 保底)。两者走同一 `PlanExecutor` 抽象,模式由 `settings.toml [planner] mode` 开关切换,默认 `llm`。演示主路径必须用 llm 模式 run 作为主 demo。
+> 取舍说明(v1.2 调整契约 §11 冲突7):默认 `planner_mode=llm`,让 C 的 plan-execute 走 ReAct 调 LLM 组织工具(避免被误判为"会循环的 wrapper");`rule` 模式仅作 LLM 不可用时的降级(feasibility 保底)。两者走同一 `PlanExecutor` 抽象,模式由 `settings.toml [planner] mode` 开关切换,默认 `llm`。主路径演示用 llm 模式 run。
 
 ---
 
@@ -256,7 +256,7 @@ C 位于 L4,夹在 L5(对外接口层)与 L3(Tool Registry)之间。L5 把人类
 
 ## 5. 对外接口契约(函数签名 + 输入/输出 schema + 错误码 + 副作用/产出工件)
 
-三处对外接口签名严格一致(CLI / SDK / MCP 调同一函数)。MVP 实现 CLI + SDK;MCP 为加分项。
+三处对外接口签名严格一致(CLI / SDK / MCP 调同一函数)。MVP 实现 CLI + SDK;MCP 为可选扩展。
 
 ### 5.1 Python SDK(权威实现)
 
@@ -315,18 +315,18 @@ C 位于 L4,夹在 L5(对外接口层)与 L3(Tool Registry)之间。L5 把人类
         # → 读 runs/<run_id>/report.md 渲染到 stdout;不重跑 pipeline
         # → 若 run_id 不存在,stderr 报错 + 退出码 64
 
-### 5.3 MCP server(加分项,签名与 SDK 一致)
+### 5.3 MCP server(可选扩展,签名与 SDK 一致)
 
     # src/eda_agent/mcp_server.py(FastMCP 实现,契约 §3 末尾适配约定)
     # 暴露两类 MCP tool:
     #   eda_agent.self_heal(inputSchema = RunRequest 字段子集) → RunReport dict
     #   eda_agent.report(inputSchema = {run_id: str})          → report.md 文本
-    # 另:registry.to_mcp_tools() 把每个 EDA Tool 也暴露为 eda_agent.<tool_name>(加分项)。
+    # 另:registry.to_mcp_tools() 把每个 EDA Tool 也暴露为 eda_agent.<tool_name>(可选扩展)。
     # 适配约定:
     #   - 同步 Tool 用 asyncio.to_thread 包成 async
     #   - ToolCall.args 直接作为 MCP inputSchema 入参
     #   - ToolResult.status="error" → MCP error response,error_code 放 data 字段
-    # 降级策略:集训评估 4 天做不完则 to_mcp_tools 仅留签名存根,不阻塞 MVP。
+    # 降级策略:评估做不完则 to_mcp_tools 仅留签名存根,不阻塞 MVP。
 
 ### 5.4 输入 schema(RunRequest,契约 §2.0 原样)
 
@@ -697,7 +697,7 @@ C 的退出码与 status 映射:`ok→0`,`failed→1`,`budget_exhausted→2`,rep
 - tool_calls 形状:`{"id": str|None, "name": str, "args": dict}`,C 取首项构造 `Action(llm_tool_call_id=id)`。
 - 回灌:`Message(role="tool", content=json.dumps({status,parsed,error_hint}), tool_call_id=id)`。
 - 计数:run 结束从 CountingProvider 读 `llm_calls/tokens_in/tokens_out` 填 RunRecord。
-- MVP 只 Claude;Qwen/DeepSeek 走 OpenAICompat 为加分项(C 代码零改,只换 provider)。
+- MVP 只 Claude;Qwen/DeepSeek 走 OpenAICompat 为可选扩展(C 代码零改,只换 provider)。
 
 ### 7.4 C 用到的错误码(§2.6)
 
@@ -716,16 +716,16 @@ C 的退出码与 status 映射:`ok→0`,`failed→1`,`budget_exhausted→2`,rep
 | vvp | 随 iverilog | — | 否 |
 | OpenSTA | `apt install opensta` 或源码 | ≥2.3.4 | 否(经 opensta_timing Tool) |
 
-> Day0.5 前置 gate:`yosys -p "synth -top counter; stat -json"` 跑通 hello-world,工具没装好前不写 C 的 e2e 测试。
+> 前置 gate:`yosys -p "synth -top counter; stat -json"` 跑通 hello-world,工具没装好前不写 C 的 e2e 测试。
 
 ### 8.2 Python 库(对齐契约 §6 pyproject.toml)
 
     eda-agent 依赖(C 视角用到的):
-        anthropic>=0.40        # ClaudeProvider(LLM provider 加分项才需 openai>=1.30)
+        anthropic>=0.40        # ClaudeProvider(LLM provider 可选扩展才需 openai>=1.30)
         jsonschema>=4          # C 校验 LLM tool_calls.args 是否符 Tool.schema
         tomli; python_version<'3.11'   # settings.toml 解析
         # CLI:argparse(标准库)或 typer>=0.12(可选,带 --help 友好)
-        # MCP 加分项:mcp>=1.0(FastMCP),列为 optional dependency
+        # MCP 可选扩展:mcp>=1.0(FastMCP),列为 optional dependency
 
 > C 不直接依赖 subprocess(由 Tool 封装);不依赖 LangGraph/LangChain(契约硬要求自研轻量循环)。
 
@@ -734,7 +734,7 @@ C 的退出码与 status 映射:`ok→0`,`failed→1`,`budget_exhausted→2`,rep
 | provider | MVP | 模型 | 何时用 |
 |---|---|---|---|
 | ClaudeProvider | 是 | claude-sonnet-4 | settings.planner_mode="llm" 时;A/B 也用它 |
-| OpenAICompatProvider | 加分项 | qwen-plus / deepseek-chat | 切 provider 对比实验,C 代码零改 |
+| OpenAICompatProvider | 可选扩展 | qwen-plus / deepseek-chat | 切 provider 对比实验,C 代码零改 |
 
 API key 走环境变量 `ANTHROPIC_API_KEY` / `DASHSCOPE_API_KEY` / `DEEPSEEK_API_KEY`,不进 settings.toml(契约 §6)。
 
@@ -748,7 +748,7 @@ API key 走环境变量 `ANTHROPIC_API_KEY` / `DASHSCOPE_API_KEY` / `DEEPSEEK_AP
 
 ## 9. 实现步骤拆解(给新终端的有序子任务,每步带验证方法)
 
-> 假设 Day1-2 的基座(contracts/registry/runner/settings)已就绪。以下聚焦 C 组件自身的实现顺序。每个子任务给"新终端照着能直接领"的指令 + 量化验证方法。
+> 假设基座(contracts/registry/runner/settings)已就绪。以下聚焦 C 组件自身的实现顺序。每个子任务给"新终端照着能直接领"的指令 + 量化验证方法。
 
 ### Step C1 —— CPlanner 骨架 + 状态机(不接 Tool,空转)
 
@@ -905,7 +905,7 @@ API key 走环境变量 `ANTHROPIC_API_KEY` / `DASHSCOPE_API_KEY` / `DEEPSEEK_AP
 
 终端指令:
 
-    # 前置:WSL2 yosys/iverilog/opensta 已装(Day0.5 gate)
+    # 前置:WSL2 yosys/iverilog/opensta 已装(前置 gate)
     # 用 data/examples/counter + 预 inject bug
     pytest tests/test_e2e_pipeline.py -m needs_eda -q
 
@@ -921,7 +921,7 @@ API key 走环境变量 `ANTHROPIC_API_KEY` / `DASHSCOPE_API_KEY` / `DEEPSEEK_AP
 
 通过门槛:5 断言全过(成功修复或失败案例都算交付,契约 §7 验收基线)。
 
-### Step C10 —— MCP server(加分项,有时间再做)
+### Step C10 —— MCP server(可选扩展,有时间再做)
 
 终端指令:
 
@@ -941,7 +941,7 @@ API key 走环境变量 `ANTHROPIC_API_KEY` / `DASHSCOPE_API_KEY` / `DEEPSEEK_AP
 
 > 全部测试命令在 `D:/eda agent system` 下执行。`needs_eda` marker 需 WSL2 工具就绪。
 
-### 10.1 接口契约对齐(硬指标,必过)
+### 10.1 接口契约对齐(验收项,必过)
 
 | 指标 | 通过门槛 | 测试方法 |
 |---|---|---|
@@ -970,23 +970,23 @@ API key 走环境变量 `ANTHROPIC_API_KEY` / `DASHSCOPE_API_KEY` / `DEEPSEEK_AP
 | (必过A) e2e 可执行性 | RunReport.status ∈ {ok,failed,budget_exhausted};至少触发 B 一次;experiment_manifest.json 含 10 个必填字段(含 baseline_run_id/candidates_at_best_score) | `pytest tests/test_e2e_pipeline.py -m needs_eda` |
 | (必过B) 修复效力 | 至少 1 个 inject bug 的 RunReport.status=ok 且 parsed._convergence_cause="all_pass" | 跑 8 个 inject bug,统计 experiment_summary.json.by_fault_type |
 | (必过C) 独立验证步存在 | B all_pass 的 run,父 RunRecord.steps 含一个非 self_heal 的 iverilog_sim 步(独立验证),且 passed=True | `pytest tests/test_independent_verify.py -m needs_eda` |
-| 失败案例可追溯(加分) | 失败 run 的 trajectory 含至少 1 轮 patch diff + sim_result + 回退事件(若发生) | 人工查 `runs/<run_id>/skills/self_heal/iter_*/rtl_patch.diff` 存在 |
+| 失败案例可追溯(可选) | 失败 run 的 trajectory 含至少 1 轮 patch diff + sim_result + 回退事件(若发生) | 人工查 `runs/<run_id>/skills/self_heal/iter_*/rtl_patch.diff` 存在 |
 | LLM 计数准确 | RunRecord.llm_calls 与实际 provider 调用次数一致(±0) | CountingProvider 单测 + e2e 后比对 run.json.llm_calls |
 
-> v1.2 删除 v1.1 "成功或失败案例皆可"的并集表述:可执行性(必过A)与修复效力(必过B)是两个独立必过项;失败案例可追溯单独作为加分项,不进必过。评审无工具时,提交 runs/eval_snapshot/ 下准备期预跑的真实 run 目录 + experiment_manifest.json 截图作为替代证据。
+> v1.2 删除 v1.1 "成功或失败案例皆可"的并集表述:可执行性(必过A)与修复效力(必过B)是两个独立必过项;失败案例可追溯单独作为可选扩展,不进必过。无 EDA 工具环境时,用 runs/eval_snapshot/ 下准备期预跑的真实 run 目录 + experiment_manifest.json 截图作为可复现证据。
 
-### 10.4 文档/可集成性(完赛奖第 2 条)
+### 10.4 文档/可集成性
 
 | 验收项 | 量化门槛 | 测试方法 |
 |---|---|---|
 | CLI 可被新终端直接调用 | 新终端 `pip install -e . && eda --help` 列出 self-heal/diagnose/report | 人工执行 |
 | SDK 一行可调 | `from eda_agent import run_pipeline; run_pipeline(req, settings)` 返回 RunReport | 人工执行 |
-| MCP(加分项) | Claude Code/Cursor 能调 eda_agent.self_heal 拿到 RunReport dict | 人工接 server 验证;做不完降级签名存根 |
-| 三处接口签名一致 | CLI/SDK/MCP 入参字段名与 RunRequest dataclass 完全一致 | 非技术成员执行字段级互查(Day8 任务) |
+| MCP(可选扩展) | Claude Code/Cursor 能调 eda_agent.self_heal 拿到 RunReport dict | 人工接 server 验证;做不完降级签名存根 |
+| 三处接口签名一致 | CLI/SDK/MCP 入参字段名与 RunRequest dataclass 完全一致 | 非核心成员执行字段级互查 |
 
 ### 10.5 通过门槛汇总(给验收人的一句话;v1.2 拆分可执行性与修复效力)
 
-> C 组件验收通过的充要条件:**10.1 三项全过 + 10.2 九项全过(含退出码一致性)+ 10.3 必过A(可执行性)+ 必过B(修复效力,至少 1 个 all_pass)+ 必过C(独立验证步)+ 10.4 前两项可人工执行**。MCP 与 OpenAICompat 为加分项,不阻塞。评审无工具时,10.3 用准备期预跑快照 runs/eval_snapshot/ 作为替代证据(契约 §12 #15)。
+> C 组件验收通过的充要条件:**10.1 三项全过 + 10.2 九项全过(含退出码一致性)+ 10.3 必过A(可执行性)+ 必过B(修复效力,至少 1 个 all_pass)+ 必过C(独立验证步)+ 10.4 前两项可人工执行**。MCP 与 OpenAICompat 为可选扩展,不阻塞。无 EDA 工具环境时,10.3 用预跑快照 runs/eval_snapshot/ 作为可复现证据(契约 §12 #15)。
 
 ---
 
@@ -994,26 +994,26 @@ API key 走环境变量 `ANTHROPIC_API_KEY` / `DASHSCOPE_API_KEY` / `DEEPSEEK_AP
 
 | 风险 | 影响 | 对策 |
 |---|---|---|
-| WSL2 工具 Day0.5 没装好 | e2e 测试无法跑,完赛奖第 1 条"真实可跑"悬 | Day0.5 前置 gate(契约 §7):先 `wsl yosys -p "synth"` 跑通再写 Tool;C 的 stub e2e(Step C5)保底不依赖真工具 |
+| WSL2 工具未装好 | e2e 测试无法跑,"真实可跑"验收悬 | 前置 gate(契约 §7):先 `wsl yosys -p "synth"` 跑通再写 Tool;C 的 stub e2e(Step C5)保底不依赖真工具 |
 | LLM tool_calls 幻觉(调不存在 tool) | 循环空转 / 抛异常 | 契约 §2.5 强制 registry.get 校验 + 构造 eda.tool_not_found 回灌,不中断;Step C6 用例 2 覆盖 |
 | LLM API 限流/不可用 | e2e 卡死 | `_call_llm_safe` 降级到规则 planner(feasibility 保底);规则 planner 不依赖 LLM |
 | 预算被 B 独占(双层仲裁失效) | C 后续步骤没预算,实验不可复现 | 契约 §2.3:C 调 B 前算 remaining 并下传 remaining_budget_s;B 内部取 min(self.budget_s, remaining);Step C2 单测 |
-| B 内部 patch 把 RTL 改坏无回退 | 失败案例无结构,评委质疑 agentic 真实性 | 契约 §2.3 patch 回退契约:num_passed 回退则恢复上一版 RTL,trajectory 记 best_iter;C 在 report 里显式渲染回退事件 |
+| B 内部 patch 把 RTL 改坏无回退 | 失败案例无结构,影响 agentic 真实性证据 | 契约 §2.3 patch 回退契约:num_passed 回退则恢复上一版 RTL,trajectory 记 best_iter;C 在 report 里显式渲染回退事件 |
 | step 目录爆炸(B 迭代多轮) | run 目录巨大,diff 困难 | ToolResult.stdout/stderr 头 32KB+尾 32KB 裁剪 + .full.log 落盘(契约 §2.1);VCD 二进制原样但不进 git |
 | Python 3.14(本机)与契约 ≥3.10 兼容 | tomli 在 3.11+ 是 stdlib tomllib | pyproject 条件依赖 `tomli; python_version<'3.11'`;3.14 用 tomllib |
 | iverilog 无结构化输出 | num_passed/num_failed 解析失败 | 契约 §2.2 TB 打印协议(TEST_PASS/TEST_FAIL 固定标记行);未打印则返回 None,不崩 |
 | 僵尸 run(进程崩没写终态) | 对比实验 diff 误判 | 契约 §2.4 runner.scavenge_zombies:CPlanner 构造前 cli.py 触发一次扫描 |
-| 2 人工期紧(OpenSTA 上调 MVP) | Day3 工程量翻倍 | 契约 §11 冲突2:OpenSTA stat 走 -json,与 yosys 同量级;C 侧只多一个 Action,无新代码模式 |
+| 2 人工期紧(OpenSTA 上调 MVP) | OpenSTA 落地工程量翻倍 | 契约 §11 冲突2:OpenSTA stat 走 -json,与 yosys 同量级;C 侧只多一个 Action,无新代码模式 |
 
 ---
 
 ## 12. 待确认决策(列给用户的开放问题)
 
-1. **planner_mode 默认值**:[v1.2 已裁决] 默认 `llm`(契约 §11 冲突7),契合 Track 01 agentic 充分性,避免被评委会判定"会循环的 wrapper";`rule` 仅作 LLM 不可用时的降级路径。演示主路径必须用 llm 模式 run 作为主 demo。本决策关闭。
-2. **LLM planner 每轮取首个 tool_call 还是支持并行多 tool_calls**:MVP 取首个(简单,可调试)。若评审更看重"agent 一次规划多步",可扩展。请确认 MVP 取首。
+1. **planner_mode 默认值**:[v1.2 已裁决] 默认 `llm`(契约 §11 冲突7),保证 planner 真正组织工具迭代,避免被误判"会循环的 wrapper";`rule` 仅作 LLM 不可用时的降级路径。主路径演示用 llm 模式 run。本决策关闭。
+2. **LLM planner 每轮取首个 tool_call 还是支持并行多 tool_calls**:MVP 取首个(简单,可调试)。若需"agent 一次规划多步",可扩展。请确认 MVP 取首。
 3. **CLI 是否要 `--dry-run`(只 plan 不执行)**:便于演示任务分解能力,但契约 §2.0 没列。是否加?(加 = 0.5 人天)
-4. **report.md 的渲染深度**:MVP 一页(状态+steps 表+metrics);是否要嵌入 trajectory 可视化(mermaid)?非技术成员可做,但集训 4 天工期紧。
-5. **MCP server 是否进 MVP**:契约列为加分项。如果评审现场会用 Claude Code 调,MCP 是大加分;如果只看 report.md,可不做。请定夺优先级。
+4. **report.md 的渲染深度**:MVP 一页(状态+steps 表+metrics);是否要嵌入 trajectory 可视化(mermaid)?可由非核心成员承担,但工期需评估。
+5. **MCP server 是否进 MVP**:契约列为可选扩展。如果集成方用 Claude Code 调,MCP 价值大;如果只看 report.md,可不做。请定夺优先级。
 6. **experiment_manifest.json 的 fault_type 分类粒度**:契约 §2.4 列 4 类(syntax/comb_logic/timing_reset/bitwidth)。非技术成员准备 inject bug 时,3 类够不够?是否需第 4 类凑齐?
 7. **RunReport.metrics 是否标准化字段集**:[v1.2 已裁决] 契约 §2.4 已锁定 15 字段标准集(含 self_heal_pass_rate / baseline_pass_rate),本文 §5.5 已对齐。原 minor#13(v1.1 允许 MVP 自由填)已升级处理。本决策关闭。
 8. **C 是否要在 self_heal 收敛后自动追加一次 final iverilog_sim 验证 B 的 patch 真的过**:[v1.2 已裁决] 必加,作为 MVP 主流程非 open question。B 报 all_pass 后 C 强制追加独立 iverilog_sim 验证步(读 B.best/rtl.v),通过后才置 goal_achieved(契约 §10 agentic 自检 + §10.3 必过C)。多 1 步 tool call,演示可信度显著提升。本决策关闭。
@@ -1027,5 +1027,5 @@ API key 走环境变量 `ANTHROPIC_API_KEY` / `DASHSCOPE_API_KEY` / `DEEPSEEK_AP
 - [x] 验收量化:§10 全部门槛用 `pytest` 命令或人工可执行断言,含退出码、字段名、计数。
 - [x] 实现步骤细到新终端可领:每个 Step 给文件路径 + 终端指令 + 验证 pytest 用例 + 通过门槛。
 - [x] 伪代码 4 空格缩进,无反引号代码块。
-- [x] 2 人可实现:Step C1-C9 是 MVP(C10 加分),规则 planner 保底无需 LLM 即可 e2e;LLM planner 与 MCP 列加分。
+- [x] 2 人可实现:Step C1-C9 是 MVP(C10 可选),规则 planner 保底无需 LLM 即可 e2e;LLM planner 与 MCP 列可选扩展。
 - [x] agentic 体现:C 用 plan-execute/ReAct 组织工具迭代;调 B 触发"综合→仿真→诊断→patch→重试"闭环;读 _convergence_cause/_best_iter 作智能证据。

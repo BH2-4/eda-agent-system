@@ -56,7 +56,7 @@ Sources: [settings.toml](../../settings.toml), [settings.py](../../src/eda_agent
 |------|------|--------|------|
 | `provider` | `str` | `"glm"` | `glm`（智谱，默认）/ `claude`（备用） |
 | `glm_model` | `str` | `"glm-5.2"` | GLM 模型名，裸名传 OpenAI 兼容端点 |
-| `glm_base_url` | `str` | `"https://open.bigmodel.cn/api/coding/paas/v4"` | Coding Plan 兼容端点（非通用 `/api/paas/v4`） |
+| `glm_base_url` | `str` | `"https://open.bigmodel.cn/api/coding/paas/v4"` | 智谱兼容端点（非通用 `/api/paas/v4`） |
 | `glm_thinking` | `bool` | `true` | 思考模式（`thinking.type=enabled`） |
 | `glm_reasoning_effort` | `str` | `"max"` | 推理努力档，最高性能调度 |
 | `claude_model` | `str` | `"claude-sonnet-4"` | 备用 Claude 模型 |
@@ -187,7 +187,7 @@ flowchart LR
     K --> E
 ```
 
-`settings_hash()` 在文件缺失时返回空字符串（全默认配置无可复现哈希）。`make_config_snapshot()` 在 CPlanner `execute()` 入口被调用，将 LLM 配置（provider/model/temperature/max_tokens）、EDA 工具版本号、契约版本号、配置哈希和 planner 模式打包成一个 dict，写入 `RunRecord.config_snapshot`。这样，评委或开发者拿到一个 `run.json` 即可精确判断该次实验使用了哪套配置。
+`settings_hash()` 在文件缺失时返回空字符串（全默认配置无可复现哈希）。`make_config_snapshot()` 在 CPlanner `execute()` 入口被调用，将 LLM 配置（provider/model/temperature/max_tokens）、EDA 工具版本号、契约版本号、配置哈希和 planner 模式打包成一个 dict，写入 `RunRecord.config_snapshot`。这样，开发者拿到一个 `run.json` 即可精确判断该次实验使用了哪套配置。
 
 Sources: [settings.py](../../src/eda_agent/settings.py#L146-L156), [runner.py](../../src/eda_agent/runner.py#L81-L104), [contracts.py](../../src/eda_agent/contracts.py#L199-L204)
 

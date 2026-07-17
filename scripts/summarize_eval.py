@@ -26,7 +26,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-# 比赛四类故障;其余归 "other"。
+# 四类已知故障;其余归 "other"。
 _KNOWN_FAULT_TYPES = ("bitwidth", "comb_logic", "syntax", "timing_reset")
 _OTHER = "other"
 

@@ -103,7 +103,7 @@ eda self-heal \
     --goal "pass all tests"
 ```
 
-Sources: [演示脚本.md](../演示脚本.md#L22-L42)
+Sources: [cli.py](../../src/eda_agent/cli.py)
 
 ---
 
@@ -117,7 +117,7 @@ Sources: [演示脚本.md](../演示脚本.md#L22-L42)
 eda diagnose --rtl data/examples/counter_syntax/rtl.v --tb data/examples/counter_syntax/tb.v
 ```
 
-Sources: [cli.py diagnose 分支](../../src/eda_agent/cli.py#L91-L100), [c_planner.py diagnose goal 判定](../../src/eda_agent/planner/c_planner.py#L316-L320), [演示脚本.md diagnose 演示](../演示脚本.md#L47-L49)
+Sources: [cli.py diagnose 分支](../../src/eda_agent/cli.py#L91-L100), [c_planner.py diagnose goal 判定](../../src/eda_agent/planner/c_planner.py#L316-L320)
 
 ---
 

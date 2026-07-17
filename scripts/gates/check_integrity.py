@@ -43,15 +43,12 @@ OLD_SLUG_RE = re.compile(r"\]\([0-9]+-[a-z0-9_-]+")
 # markdown 链接正则
 MD_LINK_RE = re.compile(r"\]\(([^)]+)\)")
 
-# G3 关键词集
+# G3 关键词集(技术词)
 G3_KEYWORDS = {
-    "Agentic4Systems",
-    "完赛奖",
     "CONTRACT_VERSION",
     "eda self-heal",
     "eval_snapshot",
     "Phase",
-    "2026-07-15",
     "artifact_ref",
     "as_tool",
     "baseline",
@@ -92,13 +89,13 @@ def _result(name, ok, detail=None, error=None):
 # G1: git 仓库状态守卫
 # ---------------------------------------------------------------------------
 def gate_g1():
-    """结构安全门禁.
+    """仓库清洁度门禁(通用版).
 
     前置: git check-ignore .zread exit=0 (命中 ignore).
-    1) git status --porcelain (含 ??) 逐行断言.
-    2) git diff --name-status --staged 逐行断言.
-    禁 D/R; M 仅 README.md/.gitignore; ?? 仅 docs/wiki/**.
-    末尾断言: 暂存区不含 .zread/ 路径.
+    断言: 暂存区不含 .zread/ 路径.
+    (历史版本曾锁死文件增删改类型,仅允许改 README;该约束为早期
+    提交期专用,普通开源项目不应限制文件改动,故移除。文件内容质量由 G2/G3 与
+    review 流程保证。)
     """
     # 前置断言: .zread 必须被 ignore
     pre = _run(["git", "check-ignore", ".zread"])
@@ -111,87 +108,7 @@ def gate_g1():
 
     issues = []
 
-    # ---- 1) git status --porcelain (含 ?? 未跟踪) ----
-    st = _run(["git", "status", "--porcelain"])
-    if st.returncode != 0:
-        return _result("G1", False,
-                       error=f"git status 失败: {st.stderr.strip()}")
-    for line in st.stdout.splitlines():
-        if not line:
-            continue
-        # porcelain 行: XY<path> (XY 两字符状态 + 空格 + path, 重命名有 ->)
-        xy = line[:2]
-        rest = line[3:]
-        # 处理重命名: "R  old -> new"
-        if "->" in rest:
-            issues.append(f"禁止的重命名(R): {line}")
-            continue
-        path = rest.strip().strip('"')
-        x, y = xy[0], xy[1]
-
-        # 任何 D (删除)
-        if x == "D" or y == "D":
-            issues.append(f"禁止的删除(D): {line}")
-            continue
-        # 任何 R (重命名) — X 或 Y 含 R
-        if x == "R" or y == "R":
-            issues.append(f"禁止的重命名(R): {line}")
-            continue
-        # M (修改): 仅允许 README.md / .gitignore / .gitattributes / scripts/gates/**
-        if x == "M" or y == "M":
-            norm = path.replace("\\", "/")
-            if path not in ALLOWED_M and not norm.startswith("scripts/gates/"):
-                issues.append(f"禁止的修改(M): {path} (仅允许 {sorted(ALLOWED_M)} 或 scripts/gates/**)")
-            continue
-        # ?? (未跟踪新增): 仅允许 docs/wiki/** 前缀
-        if xy == "??":
-            norm = path.replace("\\", "/")
-            if not norm.startswith("docs/wiki/"):
-                issues.append(f"禁止的未跟踪文件(??): {path} (仅允许 docs/wiki/**)")
-            continue
-        # A (暂存新增) — 留给 staged 检查覆盖, 这里也防御性校验
-        if x == "A" or y == "A":
-            norm = path.replace("\\", "/")
-            if not (norm.startswith("docs/wiki/") or path in ALLOWED_M
-                    or norm.startswith("scripts/gates/")):
-                issues.append(f"禁止的暂存新增(A): {path}")
-            continue
-
-    # ---- 2) git diff --name-status --staged ----
-    diff = _run(["git", "diff", "--name-status", "--staged"])
-    if diff.returncode != 0:
-        return _result("G1", False,
-                       error=f"git diff --staged 失败: {diff.stderr.strip()}")
-    for line in diff.stdout.splitlines():
-        if not line:
-            continue
-        parts = line.split("\t")
-        code = parts[0]
-        paths = parts[1:]
-        # 重命名 (Rxx)
-        if code.startswith("R"):
-            issues.append(f"暂存区禁止的重命名: {line}")
-            continue
-        if code.startswith("D"):
-            issues.append(f"暂存区禁止的删除: {line}")
-            continue
-        if code.startswith("C"):
-            issues.append(f"暂存区禁止的复制: {line}")
-            continue
-        if code.startswith("M"):
-            for p in paths:
-                norm = p.replace("\\", "/")
-                if p not in ALLOWED_M and not norm.startswith("scripts/gates/"):
-                    issues.append(f"暂存区禁止的修改(M): {p} (仅允许 {sorted(ALLOWED_M)} 或 scripts/gates/**)")
-            continue
-        if code.startswith("A"):
-            for p in paths:
-                norm = p.replace("\\", "/")
-                if not (norm.startswith("docs/wiki/") or p in ALLOWED_M
-                        or norm.startswith("scripts/gates/")):
-                    issues.append(f"暂存区禁止的新增(A): {p}")
-
-    # ---- 末尾断言: 暂存区不含 .zread/ ----
+    # ---- 断言: 暂存区不含 .zread/ ----
     cached = _run(["git", "diff", "--cached", "--name-only"])
     if cached.returncode != 0:
         return _result("G1", False,

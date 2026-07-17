@@ -218,7 +218,7 @@ A 注册为 Tool(`skill_diagnose`),既可被 C(L4 Planner)直接调用,也可被
                 "summary": self.root_cause,
             }
 
-### 4.4 ErrorKB 增长机制(兑现完赛奖"失败案例沉淀为系统能力")
+### 4.4 ErrorKB 增长机制(失败案例沉淀为系统能力)
 
 机制分三档,保证"可积累但不会被 LLM 噪声污染":
 
@@ -564,7 +564,7 @@ A 不调用 EDA 工具,但 ErrorKB 的 regex 要对齐这些工具的日志格�
 ### 步骤 1:搭骨架 dataclass(0.5 天)
 
 任务:在 `src/eda_agent/skills/diagnose.py` 写 §4 全部 dataclass(ErrorPattern / ErrorKB / DiagnosisReport)+ compute_confidence。
-依赖:`src/eda_agent/contracts.py`(契约 §2)必须先落地(由基座两人 Day1-2 共做)。
+依赖:`src/eda_agent/contracts.py`(契约 §2)必须先落地(由基座两人 Phase1 共做)。
 验证方法:
 
     python -c "from eda_agent.skills.diagnose import DiagnosisReport; \
@@ -663,7 +663,7 @@ A 不调用 EDA 工具,但 ErrorKB 的 regex 要对齐这些工具的日志格�
 任务:写 §10 的验收脚本 `scripts/eval_diagnose.py` + `tests/test_diagnose_skill.py`(覆盖接口单测 + ErrorKB 增长用例 + 语料 Top-1 命中率)。
 验证方法:照 §10 门槛逐条跑,全绿。
 
-总计:约 5-6 人天(2 人并行约 3 天,契合约 Day5 单日交付 + Day8 联调)。
+总计:约 5-6 人天(2 人并行约 3 天,契合约 Phase3 单日交付 + Phase4 联调)。
 
 ---
 
@@ -753,7 +753,7 @@ Top-1 根因命中定义(v1.2 加权三支,消除"任一支单独兜底刷分"):
     - root_cause_match(权重 0.4):report.root_cause_summary 与 expected_root_cause 关键词 Jaccard >= 0.3
                                    或 expected_root_cause 子串在 report.root_cause_summary
     - hint_match(权重 0.2):任一 fix_hint 包含 expected_fix_hint_contains
-    严格命中率(code_match==1 且总分>=0.6)与宽松命中率(总分>=0.6)同时报,让评委自行判断。
+    严格命中率(code_match==1 且总分>=0.6)与宽松命中率(总分>=0.6)同时报,供读者自行判断。
     分母=corpus 全部样本(避免与规则层覆盖率循环验证)。脚本输出:命中数/总数 + 分 stage/分 difficulty 桶。
 
 ### 10.3 测试方法(可直接执行)
@@ -809,7 +809,7 @@ D. 契约对齐自检(交付前,非技术成员执行):
                                                   超时回退纯规则层(used_layers="rule")
     R5 规则层与 LLM 层 root_cause 矛盾     低      has_contradiction 触发 confidence 下调(§4.5);
                                                   report.md 标注 [CONTRADICTION] 供人工 review
-    R6 propose_pending 堆积无人 review     中      Day8 任务:非技术成员集中 review;CI 加断言
+    R6 propose_pending 堆积无人 review     中      Phase4 任务:非技术成员集中 review;CI 加断言
                                                   propose_pending/ 文件数 <= 阈值(如 10),超了告警
     R7 日志裁剪丢证据(.full.log 未生成)  中      A 读证据时先 assert os.path.exists(.full.log);
                                                   不存在则 fallback 到 ToolResult.stdout + 标 evidence_incomplete
@@ -824,7 +824,7 @@ D. 契约对齐自检(交付前,非技术成员执行):
 
 1. **ErrorKB 持久化路径**:当前定 `data/error_kb.json`(进 git)。是否要拆成 `data/error_kb.seed.json`(人工写,进 git)+ `data/error_kb.grown.json`(LLM 提议+人工确认后积累,进 git 但可频繁改)?分离能避免种子与增长混淆。倾向:拆,但增加一次 save/load 逻辑,需用户拍板。
 
-2. **Top-1 命中率的"语义近似"判据**:MVP 用关键词 Jaccard,粗糙。是否引入一个小 LLM-as-judge(同一个 ClaudeProvider)做语义打分?代价:eval 脚本变慢、引入评判方偏差。倾向:MVP 用关键词,集训期若评委质疑再升级。
+2. **Top-1 命中率的"语义近似"判据**:MVP 用关键词 Jaccard,粗糙。是否引入一个小 LLM-as-judge(同一个 ClaudeProvider)做语义打分?代价:eval 脚本变慢、引入评判方偏差。倾向:MVP 用关键词,后续若需语义近似再升级。
 
 3. **A 是否要产"patch 草稿"**:当前 fix_hints 是文字建议,B 自己拿去让 LLM 出 patch。是否让 A 直接产 patch 草稿(diff 片段)给 B?风险:边界模糊,A 越界到 B 的职责。倾向:不产,A 只给 fix_hints,B 决定 patch 形态(契约 §2.3 patch_source 由 B 填)。
 
