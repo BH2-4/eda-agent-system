@@ -1181,7 +1181,7 @@ MVP 必做清单(优先级从高到低):
 开发阶段建议(v1.2 调整):
 
 - Phase0(前置):WSL2 装 yosys+iverilog+opensta + 跑 hello-world 综合前置 gate + 确认 data/lib/。
-- Phase1:contracts(含 artifact_ref 工厂 / ARTIFACT_FROM_STATE / §2.3 as_tool 映射 + reserved 拆包 / §2.4 隶属关系)+ registry + build_registry + settings + 落盘框架(两人共做基座)。
+- Phase1:contracts(含 artifact_ref 工厂 / ARTIFACT_FROM_STATE / §2.3 as_tool 映射 + reserved 拆包 / §2.4 隶属关系)+ registry + build_registry + settings + 落盘框架(属基座共建)。
 - Phase2:写 8 个 inject bug + 对应 TB + fault_manifest.json;做 Yosys/iverilog/OpenSTA Tool(numeric 走 stat -json)。
 - Phase2.5:ClaudeProvider + CountingProvider + CPlanner 骨架(默认 LLM 模式,降级 rule)/ Tool 真跑单测 + TB 打印协议。
 - Phase3:A 诊断器(confidence 规则校准 + 饱和项 + contradiction + Top-1 加权)。

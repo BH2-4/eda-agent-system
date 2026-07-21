@@ -59,7 +59,7 @@ _THR = {
     "A11_hard": 3,
 }
 
-# 质量门槛(通过线 + 0.10 margin;用户要求"靠近通过线的指标超过通过线更多"留 buffer)
+# 质量门槛(通过线 + 0.10 margin;设计上让"靠近通过线的指标超过通过线更多"留 buffer)
 _THR_GOOD = {
     "A1_top1_weighted": 0.70,
     "A2_rule_coverage": 0.60,
@@ -473,7 +473,7 @@ def _eval(
     if with_llm and a3 is not None and a3 < _THR["A3_llm_conf_mean"]:
         failed_checks.append("A3_llm_conf_mean")
 
-    # 质量门槛判定(及格 + 0.10 margin;达质量门槛才视为质量达标可持续推进)
+    # 质量门槛判定(通过线 + 0.10 margin;达质量门槛才视为质量达标可持续推进)
     good_failed: list[str] = []
     if a1_top1 < _THR_GOOD["A1_top1_weighted"]:
         good_failed.append("A1_top1_weighted")

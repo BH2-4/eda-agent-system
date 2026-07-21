@@ -222,7 +222,7 @@ A 注册为 Tool(`skill_diagnose`),既可被 C(L4 Planner)直接调用,也可被
 
 机制分三档,保证"可积累但不会被 LLM 噪声污染":
 
-    档位 1  seed         准备期人工写的种子模式(契约 §2.6 MVP 7 类对应种子)
+    档位 1  seed         初始人工编写的种子模式(契约 §2.6 MVP 7 类对应种子)
     档位 2  llm_curated  LLM 在归因时发现新模式 → 写入 propose_pending/(json)
                          每天 review 一次,人工 confirm 后 source 改 human 并 add_case 入主库
     档位 3  human        从 runs/ 真实失败案例里手写模式(标注规范见 §5)
@@ -559,7 +559,7 @@ A 不调用 EDA 工具,但 ErrorKB 的 regex 要对齐这些工具的日志格�
 
 ## 9. 实现步骤拆解
 
-每步带验证方法,完成即勾。
+按依赖顺序拆为 10 步,每步带验证方法,完成即勾。
 
 ### 步骤 1:搭骨架 dataclass
 任务:在 `src/eda_agent/skills/diagnose.py` 写 §4 全部 dataclass(ErrorPattern / ErrorKB / DiagnosisReport)+ compute_confidence。
@@ -588,7 +588,7 @@ A 不调用 EDA 工具,但 ErrorKB 的 regex 要对齐这些工具的日志格�
     print("ok")
 
 ### 步骤 3:写种子 ErrorPattern 库
-任务:对照契约 §2.6 MVP 7 类错误码,写至少 10 条种子 ErrorPattern(覆盖 synth/sim/sta 三 namespace)。每条 example_log 取自真实日志或第三人标注语料(§10 验收基线要求 20 条语料)。
+任务:对照契约 §2.6 MVP 7 类错误码,写至少 10 条种子 ErrorPattern(覆盖 synth/sim/sta 三 namespace)。每条 example_log 取自真实日志或人工标注语料(§10 验收基线要求 20 条语料)。
 覆盖范围(必含):
 
     synth.rtl_syntax        语法错(行号抽取)
@@ -666,7 +666,7 @@ A 不调用 EDA 工具,但 ErrorKB 的 regex 要对齐这些工具的日志格�
 语料目录:
 
     data/logs_corpus/
-        raw/                           # 原始日志(第三人收集:从 runs/ 真实失败 + 公开 EDA issue)
+        raw/                           # 原始日志(来源:runs/ 真实失败 + 公开 EDA issue)
             yosys_001.log
             iverilog_001.log
             ...

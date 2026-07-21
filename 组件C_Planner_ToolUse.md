@@ -973,7 +973,7 @@ API key 走环境变量 `ANTHROPIC_API_KEY` / `DASHSCOPE_API_KEY` / `DEEPSEEK_AP
 | 失败案例可追溯(可选) | 失败 run 的 trajectory 含至少 1 轮 patch diff + sim_result + 回退事件(若发生) | 人工查 `runs/<run_id>/skills/self_heal/iter_*/rtl_patch.diff` 存在 |
 | LLM 计数准确 | RunRecord.llm_calls 与实际 provider 调用次数一致(±0) | CountingProvider 单测 + e2e 后比对 run.json.llm_calls |
 
-> v1.2 删除 v1.1 "成功或失败案例皆可"的并集表述:可执行性(必过A)与修复效力(必过B)是两个独立必过项;失败案例可追溯单独作为可选扩展,不进必过。无 EDA 工具环境时,用 runs/eval_snapshot/ 下准备期预跑的真实 run 目录 + experiment_manifest.json 截图作为可复现证据。
+> v1.2 删除 v1.1 "成功或失败案例皆可"的并集表述:可执行性(必过A)与修复效力(必过B)是两个独立必过项;失败案例可追溯单独作为可选扩展,不进必过。无 EDA 工具环境时,用 runs/eval_snapshot/ 下预跑的真实 run 目录 + experiment_manifest.json 截图作为可复现证据。
 
 ### 10.4 文档/可集成性
 
