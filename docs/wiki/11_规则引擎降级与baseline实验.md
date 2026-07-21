@@ -212,7 +212,7 @@ comb_logic 类的 0.5 通过率来自 `tiny_fsm_comb` 的 regression——这是
 
 ### rule vs LLM 模式对比结论
 
-实验团队在对比测试中发现，LLM 模式在跑 `counter_bitwidth` 时出现了**决策乱序**：LLM 先调 `skill_self_heal` 再调 `skill_diagnose`（顺序错误），self_heal 拿不到诊断信息浪费了约 550s 预算最终 budget_exhausted。rule 模式因确定性状态转移强制 synth→sim→diagnose→self_heal→独立验证的固定顺序，不存在此问题。
+本项目在对比测试中发现，LLM 模式在跑 `counter_bitwidth` 时出现了**决策乱序**：LLM 先调 `skill_self_heal` 再调 `skill_diagnose`（顺序错误），self_heal 拿不到诊断信息浪费了约 550s 预算最终 budget_exhausted。rule 模式因确定性状态转移强制 synth→sim→diagnose→self_heal→独立验证的固定顺序，不存在此问题。
 
 最终决策是**两者互补**：全量实验用 rule 模式（确定性 + 快），演示 agentic 编排能力用 LLM 模式。这不是 rule "替代" LLM，而是针对不同评估维度选择合适的工具。
 

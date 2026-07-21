@@ -1,11 +1,11 @@
-# T54 S1 + 良好门槛判定
+# T54 S1 + 质量门槛判定
 
 ## S1 硬门槛 — ✅ 全过
 
 - `min_group_pass_rate` = **0.50** >= 0.50 ✓
 - `bitwidth` 类 **2/2 all_pass** ✓
 
-## 良好门槛(6 healable=true 全 all_pass)— ✅ 达标
+## 质量门槛(6 healable=true 全 all_pass)— ✅ 达标
 
 | bug | fault_type | healable | convergence | best_iter | wall_time |
 |---|---|---|---|---|---|

@@ -203,7 +203,7 @@ graph TD
     CT -->|"§13 约束"| CC
     CT -->|"精华来源"| ARCH
     CT -->|"验收映射"| AC
-    CA & CB & CC -->|"字段级互查<br/>交付前由非技术成员执行"| CT
+    CA & CB & CC -->|"字段级互查<br/>发布前人工执行"| CT
     style CT fill:#e74c3c,color:#fff
 ```
 

@@ -81,7 +81,7 @@ Sources: [yosys_synth.py](../../src/eda_agent/tools/yosys_synth.py#L55-L71), [yo
 
 系统设计在 Windows 主机上运行，但 EDA 工具（yosys / iverilog / OpenSTA）运行在 WSL2 的 Ubuntu-24.04 中。`_to_wsl_path` 函数负责将 Windows 风格路径（如 `D:\project\rtl\counter.v`）转换为 WSL 可识别的 `/mnt/d/project/rtl/counter.v` 格式：盘符小写、去冒号、反斜杠转正斜杠。对于无盘符的相对路径，函数原样返回（WSL 在其当前工作目录下解析）。
 
-当 `settings.eda.wsl_enabled` 为 `True`（这是 Win11 主机上的默认值）时，命令前缀变为 `["wsl.exe", "-d", "Ubuntu-24.04", "-e", "yosys", "-p", script]`；为 `False` 时直接调用 `["yosys", "-p", script]`。此设计使得同一份代码无需改动即可在纯 Linux CI 环境中运行（设 `wsl_enabled=False` 即可）。YosysSynthTool 将 RTL 路径和网表输出路径都经过 `_to_wsl_path` 转换，确保 yosys 在 WSL 内能正确找到文件并写出产物。
+当 `settings.eda.wsl_enabled` 为 `True`（这是 Windows 主机上的默认值）时，命令前缀变为 `["wsl.exe", "-d", "Ubuntu-24.04", "-e", "yosys", "-p", script]`；为 `False` 时直接调用 `["yosys", "-p", script]`。此设计使得同一份代码无需改动即可在纯 Linux CI 环境中运行（设 `wsl_enabled=False` 即可）。YosysSynthTool 将 RTL 路径和网表输出路径都经过 `_to_wsl_path` 转换，确保 yosys 在 WSL 内能正确找到文件并写出产物。
 
 值得注意的是，`_to_wsl_path` 在三个工具文件（`yosys_synth.py`、`iverilog_sim.py`、`opensta_timing.py`）中各自独立定义了一份——这是 L1 工具封装层有意保持的独立性：每个工具文件零外部依赖、可独立审计，代价是少量代码重复。
 

@@ -1,6 +1,6 @@
 # 组件B_自修复闭环.md — Agentic RTL 自修复闭环(B)
 
-> 本文档严格遵守 `D:/eda agent system/CONTRACTS.md`(下称"契约")v1.2。所有 dataclass 字段、Tool/Skill 接口、artifact 路径、错误码均从 `eda_agent.contracts` import,不重新定义。任何与契约冲突之处以契约为准。契约 §13 已为本组件登记对齐状态:`组件B_自修复闭环.md —— v1.2 已对齐`。
+> 本文档严格遵守 `D:/eda agent system/CONTRACTS.md`(下称"契约")v1.2。所有 dataclass 字段、Tool/Skill 接口、artifact 路径、错误码均从 `eda_agent.contracts` import,不重新定义。任何与契约冲突之处以契约为准。契约 §13 已为本项目件登记对齐状态:`组件B_自修复闭环.md —— v1.2 已对齐`。
 >
 > 组件代号 = **B**,Registry name = `skill_self_heal`,skill 文件 = `src/eda_agent/skills/self_heal.py`(对应契约 §1 对照表)。本文代码段 4 空格缩进,**禁用反引号代码块**。所有 `contract_version` 引用必须 `from eda_agent.contracts import CONTRACT_VERSION`,禁止裸字符串。
 
@@ -87,7 +87,7 @@ B 处于契约 §1 的 L2(Skills),与 A 并列;二者都通过 `as_tool()` 注�
 
 ## 3. 内部架构(子模块拆分 + 数据流图)
 
-### 3.1 子模块拆分(均在 `src/eda_agent/skills/self_heal.py` 一个文件内,按 class 分块;不拆多文件以降低 2 人协作冲突)
+### 3.1 子模块拆分(均在 `src/eda_agent/skills/self_heal.py` 一个文件内,按 class 分块;不拆多文件以降低协作冲突)
 
     SelfHealSkill(Skill)                    ← 主类,实现 Skill(契约 §2.3);普通类,非 @dataclass
         ├── run(run_id, inputs, remaining_budget_s)  ← 契约入口,编排下面 4 个私有方法
@@ -670,7 +670,7 @@ LLM 调用边界:B 内部 LLM 调用**只用于出 patch**(prompt = 系统+出�
     jsonschema   >= 4       # args schema 校验
     tomli        (py<3.11)  # settings.toml 解析
 
-B 自身**不引入新的第三方依赖**(只依赖 contracts/registry/llm 的内部抽象)。这降低 2 人协作的依赖冲突面。
+B 自身**不引入新的第三方依赖**(只依赖 contracts/registry/llm 的内部抽象)。这降低协作的依赖冲突面。
 
 ### 8.3 LLM
 
@@ -684,12 +684,12 @@ v1.2:**所有 inject bug RTL+TB 统一放 `data/examples/`**(契约 §4 目录�
 
 | 设计 | 路径 | 来源 | License | fault_type | healable |
 | --- | --- | --- | --- | --- | --- |
-| counter(4-bit 带复位计数器) | data/examples/counter/ | 教学自造 | MIT | bitwidth / timing_reset / comb_logic / syntax | true |
-| adder(8-bit 行波进位加法器) | data/examples/adder/ | 教学自造 | MIT | comb_logic | true |
-| mux2(2 选 1) | data/examples/mux2/ | 教学自造 | MIT | syntax | true |
-| shift_reg(4 位移位寄存器) | data/examples/shift_reg/ | 教学自造 | MIT | timing_reset | true |
-| tiny_fsm(三态 Mealy) | data/examples/tiny_fsm/ | 教学自造 | MIT | comb_logic | **false**(失败案例演示,综合可过仿真挂) |
-| adder_pipe(8-bit 流水加法器,2 级) | data/examples/adder_pipe/ | 教学自造 | MIT | timing_reset(wns<0,STA 触发) | true |
+| counter(4-bit 带复位计数器) | data/examples/counter/ | 项目自带 | MIT | bitwidth / timing_reset / comb_logic / syntax | true |
+| adder(8-bit 行波进位加法器) | data/examples/adder/ | 项目自带 | MIT | comb_logic | true |
+| mux2(2 选 1) | data/examples/mux2/ | 项目自带 | MIT | syntax | true |
+| shift_reg(4 位移位寄存器) | data/examples/shift_reg/ | 项目自带 | MIT | timing_reset | true |
+| tiny_fsm(三态 Mealy) | data/examples/tiny_fsm/ | 项目自带 | MIT | comb_logic | **false**(失败案例演示,综合可过仿真挂) |
+| adder_pipe(8-bit 流水加法器,2 级) | data/examples/adder_pipe/ | 项目自带 | MIT | timing_reset(wns<0,STA 触发) | true |
 
 inject bug 矩阵(v1.2,fault_manifest.json 至少 8 条,bitwidth>=2/comb_logic>=2/timing_reset>=2/syntax>=2):
 
@@ -709,7 +709,7 @@ License 全部 MIT,在 `data/examples/LICENSE` 声明;自造样例避免拉外�
 
 ## 9. 实现步骤拆解(给新终端的有序子任务,每步带验证方法)
 
-> 假设前置 gate 已过:WSL2 yosys/iverilog/opensta 装好、contracts.py + registry + runner + LLMProvider + 三个 EDA Tool + skill_diagnose(A)已可调。本组件给 1 人约 1.5-2 天(Phase3,契约 §7 排期)。
+> 假设前置 gate 已过:WSL2 yosys/iverilog/opensta 装好、contracts.py + registry + runner + LLMProvider + 三个 EDA Tool + skill_diagnose(A)已可调。本项目件给 1 人约 1.5-2 天(Phase3,契约 §7 排期)。
 
 ### 步骤 B0:建文件骨架 + 类型对齐(0.5h)
 
@@ -804,7 +804,7 @@ License 全部 MIT,在 `data/examples/LICENSE` 声明;自造样例避免拉外�
     # 跑 eda self-heal --rtl data/examples/counter/rtl_bitwidth_bug.v --tb data/examples/counter/tb.v --goal "pass all tests"
     # 检查 runs/<run_id>/report.md 生成 + experiment_manifest.json 字段齐全
 
-### 步骤 B8:experiment_manifest 对比实验 + 文档对齐(0.5h,非技术成员协助)
+### 步骤 B8:experiment_manifest 对比实验 + 文档对齐
 
     # 跑 6 个 inject bug 样例,每个产出一个 run 目录,汇总 experiment_manifest.json
     # 与 A/C 文档做字段级互查(契约 §13 Phase4 任务)
@@ -828,7 +828,7 @@ License 全部 MIT,在 `data/examples/LICENSE` 声明;自造样例避免拉外�
         pytest tests/test_self_heal_skill.py::test_pass_rate -q -m needs_eda   # 建议加 -n auto 并行
         # 跑完后跑 scripts/summarize_eval.py 聚合 experiment_manifest.json → experiment_summary.json
         # 断言 experiment_summary.json.min_group_pass_rate >= 0.50 且 by_fault_type.bitwidth.passed >= 1
-    验收墙钟:整体验收 <= 30 分钟(超时降级为只跑 bitwidth 类作为代表;或直接 diff 准备期预跑快照 runs/eval_snapshot/)
+    墙钟预算:整体 <= 30 分钟(超时降级为只跑 bitwidth 类作为代表;或直接 diff 预跑快照 runs/eval_snapshot/)
 
 ### 10.2 指标 2:平均迭代次数(agentic 效率)
 
@@ -904,15 +904,15 @@ License 全部 MIT,在 `data/examples/LICENSE` 声明;自造样例避免拉外�
 | 风险 | 等级 | 对策 |
 | --- | --- | --- |
 | **LLM 出的 patch 语法错率高**,导致 max_iter 内修不动 | 高 | (1) diff 优先 + iverilog `-t null` 语法预检,坏 patch 不入栈;(2) 降级 full_rewrite;(3) 再降级 diagnose_only(只报诊断不自动改,本 run 仍产出可用 report);(4) prompt 强约束"只改出错行±5 行,别动其他"。 |
-| **iverilog 无结构化输出**,TB 打印协议是唯一信号源 | 高(契约 §2.2 已知限制) | B **不解析裸 stdout**,严格只读 `TEST_PASS n/total` 与 `TEST_FAIL <signal>` 协议行;`data/examples/*/tb.v` 全部遵守协议(Phase2 偏 AI 成员负责);TB 协议违反时 B 视为 sim 编译失败而非误判通过。 |
+| **iverilog 无结构化输出**,TB 打印协议是唯一信号源 | 高(契约 §2.2 已知限制) | B **不解析裸 stdout**,严格只读 `TEST_PASS n/total` 与 `TEST_FAIL <signal>` 协议行;`data/examples/*/tb.v` 全部遵守协议(Phase2 完成);TB 协议违反时 B 视为 sim 编译失败而非误判通过。 |
 | **退化死锁**(LLM 反复出同一坏 patch / num_passed 逐轮下降) | 中 | v1.2 两套计数:`_maybe_rollback` 记 patch 应用失败 streak(策略升级);主循环 sim 分支记 num_passed 下降 streak;任一 >= 3 触发主动停机(convergence="regression"),不耗光预算;trajectory 记录每次退化事件。 |
 | **best_iter 语义歧义**(num_passed 相同时取哪轮) | 中 | v1.2 已裁决:tie-break 取**最早**达到 best_score 的轮(早收敛更优);meta.json 记 `best_iter` + `num_passed` + `candidates_at_best_score`(达到该 score 的轮数),人工可复核是否真发生过 tie。 |
 | **A 诊断器返回 root_causes 为空 / needs_rtl_patch=False 但仿真仍挂**(归因缺失) | 中 | B 不强依赖 A 完美;`_diagnose_and_patch` 在 root_causes 为空时,fallback 把 sim_res 的 `fail_signals` **先包装成 ErrorItem**(code=sim.fail_signal, severity=error)再喂 LLM(契约 §2.6 A→B 第 3 条,禁止裸字符串列表当 ErrorItem);包装后 LLM 仍可出 patch。 |
 | **预算双层仲裁被 B 独占**(C 饿死) | 中(契约 §2.3) | B 入口 `budget = min(self.budget_s, remaining)`,每轮入口检查;`budget_used_s` 字段如实上报,C 可事后审计。 |
 | **WSL2 工具未就绪**(前置 gate 没过) | 高(契约 §7) | B 的 needs_eda 测试在工具缺失时 skip(`@pytest.mark.needs_eda`);mock provider 测试不依赖 EDA 工具,保证逻辑层先行可测。 |
 | **artifact_ref 路径写错**(裸 str 而非 dict) | 低(但破坏契约) | `test_trace_integrity` 强校验 artifacts 元素形状是 `{"run_id":..,"rel_path":..}`;contracts 层加 `artifact_ref()` 工厂函数强制构造。 |
-| **国产 provider 切换时 tool_calls 归一雷**(契约 §11 裁决 5) | 低(MVP 不做) | MVP 只 ClaudeProvider;B 内部 LLM 调用不用 tool_calls(只出 patch 文本),provider 切换对 B 透明。 |
-| **inject bug 样例本身设计错**(可修性不可控) | 中 | fault_manifest.json 记每个 inject bug 的 ground-truth patch + 期望 fault_type;Phase2 非技术成员 + 偏 AI 成员互查;B 验收前先用 ground-truth patch 手验"人能修",再让 B 修。 |
+| **多 provider 切换时 tool_calls 归一雷**(契约 §11 裁决 5) | 低(MVP 不做) | MVP 只 ClaudeProvider;B 内部 LLM 调用不用 tool_calls(只出 patch 文本),provider 切换对 B 透明。 |
+| **inject bug 样例本身设计错**(可修性不可控) | 中 | fault_manifest.json 记每个 inject bug 的 ground-truth patch + 期望 fault_type;Phase2 完成互查;B 验收前先用 ground-truth patch 手验"人能修",再让 B 修。 |
 
 ---
 
@@ -920,7 +920,7 @@ License 全部 MIT,在 `data/examples/LICENSE` 声明;自造样例避免拉外�
 
 1. **goal 模板的覆盖范围**:MVP 只支持 "pass all tests" / "pass N tests" / "no timing violation" 三模板。是否需要支持更自由的 goal(如 "reduce cell area by 20%")?——倾向 MVP 不做(超出"自修复"语义,变成"优化")。
 
-2. **inject bug 的 8 个样例,谁来造、何时造**:[v1.2 已裁决] 偏 AI 成员 Phase2 先把 8 个 inject bug + 对应 TB 全部写好(不依赖非技术成员学 Verilog,与其角色描述一致);非技术成员只做 fault_manifest.json 标注 + 实验记录整理。样例限定为"人能 < 5 行 diff 修"的高可修性故障(healable=true),tiny_fsm 状态错只作失败案例(healable=false)。
+2. **inject bug 的 8 个样例,谁来造、何时造**:[v1.2 已裁决] Phase2 先把 8 个 inject bug + 对应 TB 全部写好;fault_manifest.json 标注 + 实验记录整理由人工完成。样例限定为"人能 < 5 行 diff 修"的高可修性故障(healable=true),tiny_fsm 状态错只作失败案例(healable=false)。
 
 3. **STA 在 B 中是强制还是可选**:当前设计 `goal.sta_required=True` 才跑 STA(避免没 liberty 时报错)。但契约 §11 把 OpenSTA 上调 MVP。**需确认**:验收时是否要求至少 1 个 run 演示 STA 触发的 patch(adder_pipe timing bug)?——倾向"是,作为可选演示项,不进 50% 通过率硬门槛"。
 

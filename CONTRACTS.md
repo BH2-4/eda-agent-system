@@ -131,7 +131,7 @@ CLI 子命令映射(MVP 实现 3 个,self_heal 为流水线主入口,diagnose �
     eda diagnose  --rtl ... --tb ...             → kind="diagnose"(单点 demo,内部 plan kind=diagnose)
     eda report    <run_id>                        → 读取已有 run 目录渲染报告
 
-> CLI 第三个子命令 `diagnose` 由 v1.2 新增(演示 A 诊断器的单点能力,0.3 人天),不阻塞 MVP 主路径;`run` 内部由 `self_heal` 覆盖。
+> CLI 第三个子命令 `diagnose` 由 v1.2 新增(演示 A 诊断器的单点能力,工程量小),不阻塞 MVP 主路径;`run` 内部由 `self_heal` 覆盖。
 
 CLI 退出码(三子命令统一,src/eda_agent/cli.py):
 
@@ -634,7 +634,7 @@ RunReport.metrics 标准字段集(v1.2 锁定,与 experiment_manifest.json 一�
 
 ### 2.5 LLM provider 抽象
 
-LLM 调用统一走 provider 抽象,C 和 skill 都不直接 import anthropic / openai。这样能从 Claude 切到 Qwen / DeepSeek 而不改业务代码,满足"预留国产模型 provider"要求。
+LLM 调用统一走 provider 抽象,C 和 skill 都不直接 import anthropic / openai。这样能从 Claude 切到 Qwen / DeepSeek 而不改业务代码,满足"预留多 provider provider"要求。
 
     @dataclass(frozen=True)
     class Message:
@@ -851,7 +851,7 @@ category 开放 str 推荐前缀(blocker:extensibility 解药,兑现开闭原则
 1. 显式注册(MVP 默认):在 `eda_agent.tools.bootstrap`(文件 `tools/bootstrap.py`)里集中 `registry.register(...)`,一目了然。
 2. 装饰器注册(可选):`@tool(category="synth")` 装饰 Tool 实现类,启动时自动扫描。
 
-MVP 选显式注册,避免装饰器扫描的隐式性给 2 人团队带来调试负担。
+MVP 选显式注册,避免装饰器扫描的隐式性带来调试负担。
 
 build_registry 工厂(v1.2,统一注入 runner):
 
@@ -951,9 +951,9 @@ MCP 暴露(可选,非 MVP):
                 adder_pipe/
                     rtl.v tb.v
                     rtl_timing_bug.v        # inject: wns<0(fault_type=timing_reset,STA 触发)
-                LICENSE                     # 全部 MIT(教学自造,无版权风险)
+                LICENSE                     # 全部 MIT(项目自带,无版权风险)
             lib/                            # 示例 liberty(.lib),STA 必备
-                sky130_xx.lib               # 贡献者找开源小 liberty 放入
+                sky130_xx.lib               # 需自行放入开源小 liberty 文件
             fault_manifest.json             # inject bug 清单(schema 见下)
             error_kb.json                   # A 的 ErrorKB 种子 + 增长(进 git)
             logs_corpus/                    # A 的诊断语料
@@ -1140,7 +1140,7 @@ pyproject.toml 关键项:
 
 ---
 
-## 7. MVP 边界(2 人 9 天可行性,v1.2 调整)
+## 7. MVP 边界(v1.2 调整)
 
 MVP 核心目标 → 必须做:
 
@@ -1166,34 +1166,34 @@ MVP 必做清单(优先级从高到低):
 7. CPlanner per-process + 最简 plan-execute(默认 LLM 模式;能调 Tool、能读 parsed、能迭代、能落 report、tool_calls 幻觉校验、B all_pass 后独立验证)。
 8. A 诊断器 skill:吃 ToolResult,LLM 产出 ErrorItem 列表(confidence 走规则校准 + 饱和项 + contradiction)。
 9. B 自修复 skill:综合→仿真→STA→诊断→LLM 出 patch→重试,max_iter=5,含 patch 回退与 best_iter(tie-break 最早)。
-10. **预 inject bug 准备**:偏 AI 成员先把 8 个 inject bug + 对应 TB 全部写好(不依赖非技术成员学 Verilog;非技术成员只做 fault_manifest.json 标注 + 实验记录整理),记 ground-truth patch 进 data/fault_manifest.json(限定 healable=true)。
+10. **预 inject bug 准备**:先把 8 个 inject bug + 对应 TB 全部写好,记 ground-truth patch 进 data/fault_manifest.json(限定 healable=true);fault_manifest.json 标注 + 实验记录整理由人工完成。
 11. CLI 三个子命令(self-heal + diagnose + report)。
 12. 8 个 inject bug + 端到端 e2e 测试 + baseline vs self_heal 对比实验记录(experiment_summary.json 汇总)。
 
 可选扩展(有余力再做,不阻塞 MVP):
 
-- OpenAICompatProvider 接 Qwen / DeepSeek,做 provider 切换的对比实验(贴国产模型生态)。
+- OpenAICompatProvider 接 Qwen / DeepSeek,做 provider 切换的对比实验(多 provider 扩展)。
 - MCP server 暴露 Registry(to_mcp_tools + FastMCP),让外部集成方能调我们的 Tool。
 - 装饰器式 Tool 注册。
 - 更多示例设计(状态机 / FIFO)+ 更难故障注入(组合逻辑错、时序错)。
 - KLayout 版图 / DRC Tool(category="layout"/"drc")、nextpnr(category="pnr")。
 
-开发阶段建议(2 人,v1.2 调整):
+开发阶段建议(v1.2 调整):
 
 - Phase0(前置):WSL2 装 yosys+iverilog+opensta + 跑 hello-world 综合前置 gate + 确认 data/lib/。
 - Phase1:contracts(含 artifact_ref 工厂 / ARTIFACT_FROM_STATE / §2.3 as_tool 映射 + reserved 拆包 / §2.4 隶属关系)+ registry + build_registry + settings + 落盘框架(两人共做基座)。
-- Phase2:**偏 AI 成员**写 8 个 inject bug + 对应 TB + fault_manifest.json(不依赖非核心成员学 Verilog);**偏系统成员**做 Yosys/iverilog/OpenSTA Tool(numeric 走 stat -json)。
+- Phase2:写 8 个 inject bug + 对应 TB + fault_manifest.json;做 Yosys/iverilog/OpenSTA Tool(numeric 走 stat -json)。
 - Phase2.5:ClaudeProvider + CountingProvider + CPlanner 骨架(默认 LLM 模式,降级 rule)/ Tool 真跑单测 + TB 打印协议。
 - Phase3:A 诊断器(confidence 规则校准 + 饱和项 + contradiction + Top-1 加权)。
 - Phase3.5:B 自修复(含 patch 回退、best_iter、convergence_cause、fail_signals 包装)。
 - Phase4:e2e 串联(含 B all_pass 后独立验证)+ 示例设计 + 跑通(单点能跑通)。
 - Phase4.5:experiment_manifest + experiment_summary 对比实验(baseline vs self_heal 多 run 轨迹)+ 文档对齐(A/B/C 三份文档与契约字段级互查)。
-- 收尾:buffer + 贡献者整理实验记录 + eval_snapshot 预跑。
+- 收尾:整理实验记录 + eval_snapshot 预跑。
 - 稳定化阶段:稳定性优化 + 按需补可选扩展(OpenAICompat/MCP)。
 
 ---
 
-## 8. 自检(交付前逐条核对,v1.2 更新)
+## 8. 自检(发布前逐条核对,v1.2 更新)
 
 - [x] 大纲齐全:总览分层 / 核心抽象(RunRequest/Tool/Skill/RunRecord/LLM/ErrorItem + artifact_ref 工厂)/ Registry / 目录树 / e2e / 命名配置 / MVP 边界,全部覆盖。
 - [x] dataclass 字段完整 + artifact_ref 工厂函数 + ARTIFACT_FROM_STATE 常量。
@@ -1249,7 +1249,7 @@ agentic 自检:
 
 冲突 2:OpenSTA 是否 MVP 必做 → **上调 MVP**(理由同 v1.1)。
 
-冲突 3:CLI 子命令数量 → v1.2 调整为 **3 个**(self-heal + diagnose + report)。理由:diagnose 单点 demo 对展示 A 诊断器能力有显著价值,工程量 0.3 人天;run 仍由 self_heal 覆盖。
+冲突 3:CLI 子命令数量 → v1.2 调整为 **3 个**(self-heal + diagnose + report)。理由:diagnose 单点 demo 对展示 A 诊断器能力有显著价值,工程量小;run 仍由 self_heal 覆盖。
 
 冲突 4:错误码封闭表 vs 开放二段式 → **二段式 namespace.code + MVP 13 码降级为 eda.* 别名**(理由同 v1.1,v1.2 扩为 13 含 schema_mismatch)。v1.2 补:namespace 表正式含 diagnose/heal。
 
@@ -1259,7 +1259,7 @@ agentic 自检:
 
 冲突 7(v1.2 新增):planner_mode 默认值 → **默认 llm**。理由:保证"agent 组织工具、迭代、自修复"的主路径,MVP 必须用 LLM planner 才能避免被误判为"会循环的 wrapper";rule 模式仅作 LLM 不可用时的降级(feasibility 保底)。
 
-冲突 8(v1.2 新增):B 自修复通过率门槛 → **单一硬门槛(分组最小值 >= 0.50 且 bitwidth 类至少 1 all_pass)**。理由:v1.1 的"均值 50%"与"至少 1 个 bitwidth"双硬门槛并存使验收者无所适从;分组最小值避免"只修简单类刷均值",bitwidth 兜底保证"至少 1 个真修通"。
+冲突 8(v1.2 新增):B 自修复通过率门槛 → **单一硬门槛(分组最小值 >= 0.50 且 bitwidth 类至少 1 all_pass)**。理由:v1.1 的"均值 50%"与"至少 1 个 bitwidth"双硬门槛并存使评审方无所适从;分组最小值避免"只修简单类刷均值",bitwidth 兜底保证"至少 1 个真修通"。
 
 冲突 9(v1.2 新增):needs_rtl_patch 派生口径 → **按 severity 判(error/fatal → True)**。理由:A 消费的 error_code 是 eda.* 别名(非 synth.*/sim.*/),按 namespace 前缀判会恒 False 导致 B 跳过 patch,端到端闭环断路。
 
@@ -1286,4 +1286,4 @@ agentic 自检:
     - [x] 组件B_自修复闭环.md —— v1.2 已对齐 §2.3 SkillResult(patch_source/convergence_cause/best_iter=-1)/ patch 回退 / §2.4 iter 落盘 + runner 注入 / fail_signals 包装 / inputs.goal / data/examples/ 路径 / 单一硬门槛
     - [x] 组件C_Planner_ToolUse.md —— v1.2 已对齐 §2.0 RunRequest/RunReport + per-process CPlanner / §2.5 tool-use 回环 / §5 e2e + 独立验证步 / 双层预算仲裁 + reserved 拆包 / planner_mode 默认 llm / PlannerState.history
 
-ARCHITECTURE.md 吸收本契约精华(系统视图 + 端到端数据流 + Phase 排期),不重复完整契约正文,需引用时回指本文件。验收标准.md 把 A/B/C/系统集成的验收项汇总成可勾选表。交付前由贡献者执行三份组件文档与本契约的字段级互查。
+ARCHITECTURE.md 吸收本契约精华(系统视图 + 端到端数据流 + Phase 排期),不重复完整契约正文,需引用时回指本文件。验收标准.md 把 A/B/C/系统集成的验收项汇总成可勾选表。发布前执行三份组件文档与本契约的字段级互查。

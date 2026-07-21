@@ -1,8 +1,7 @@
 # Agentic EDA Agent System
 
 > Agentic EDA Infra — LLM 驱动的 RTL 自愈流水线（diagnose → patch → 验证 → 归档）
-> 团队:2 人核心(AI/Agent/系统) + 1 人非技术(数据/文档/演示)
-> 环境:Win11 + RTX3060 Laptop | EDA 工具跑 WSL2 Ubuntu-24.04(yosys 0.33 / iverilog 12.0) | LLM 用智谱 GLM(glm-5.2)
+> 环境:EDA 工具跑 WSL2 Ubuntu-24.04(yosys 0.33 / iverilog 12.0) | LLM 用智谱 GLM(glm-5.2)
 
 ---
 
@@ -231,14 +230,14 @@ python -c "from eda_agent import run_pipeline; from eda_agent.contracts import R
 
 ---
 
-## 8. 文件导航
+## 7. 文件导航
 
 | 文件 | 角色 | 读者 |
 |---|---|---|
 | **README.md**(本文件) | 项目目标 + 五层架构 + 数据流 + 组件 + 快速开始 + 已裁决决策 + 进度 | 所有人先读 |
 | **ARCHITECTURE.md** | 项目总览(分层 + 端到端数据流 + 契约精华 + 目录树 + Phase 排期 + 风险) | 所有人 |
 | **CONTRACTS.md(宪法,权威)— 冲突时以此为准** | 全部 dataclass / Tool/Skill 接口 / 错误码 / 工件协议 | 实现者必读 |
-| 验收标准.md | 验收项汇总(可勾选表)+ 验收流程 | 验收者 + 贡献者 |
+| 验收标准.md | 验收项汇总(可勾选表)+ 验收流程 | 评审方 + 贡献者 |
 | 组件A_诊断器.md | A(skill_diagnose)设计文档 — 日志归因 + 修复建议 | A 实现者 |
 | 组件B_自修复闭环.md | B(skill_self_heal)设计文档 — RTL 自修复迭代闭环 | B 实现者 |
 | 组件C_Planner_ToolUse.md | C(CPlanner)设计文档 — Planner / Tool-Use 层 + CLI/MCP | C 实现者 |
@@ -248,7 +247,7 @@ python -c "from eda_agent import run_pipeline; from eda_agent.contracts import R
 
 ---
 
-## 9. 关键设计决策(已裁决)
+## 8. 关键设计决策(已裁决)
 
 带 **[已裁决]** 的决策已关闭,实现者照做;完整清单见 [CONTRACTS.md](CONTRACTS.md) §11(裁决) + §12(minor)与各组件文档 §12。核心裁决项:
 
@@ -256,7 +255,7 @@ python -c "from eda_agent import run_pipeline; from eda_agent.contracts import R
 2. **best_iter tie-break 取最早达到 best_score 的轮**(`score = num_passed`)。
 3. **自修复通过率门槛** = 分组最小通过率 >= 0.50 且 bitwidth 类 >= 1 个 all_pass。
 4. **C 在 B 报 `all_pass` 后必须追加独立 `iverilog_sim` 验证步**(B 自报成功 ≠ C 信任,第三方校验通过才置 `goal_achieved`)。
-5. **inject bug 由偏 AI 成员写**(非技术成员只标注),`healable=true` 才进 50% 门槛集。
+5. **inject bug 由贡献者编写**(标注 healable 字段),`healable=true` 才进 50% 门槛集。
 6. **needs_rtl_patch 按 severity 判**(error/fatal → True)。
 7. **namespace 表含 diagnose(A)+ heal(B)**,C 按 namespace 聚类读 error_code(二段式 `namespace.code`)。
 8. **inject bug RTL 统一放 `data/examples/`**(唯一权威路径)。
@@ -265,11 +264,11 @@ python -c "from eda_agent import run_pipeline; from eda_agent.contracts import R
 
 ---
 
-## 10. 实现进度与实验证据
+## 9. 实现进度与实验证据
 
 - **Phase 0-6 全完成**:契约 → L1 工具 → L2 Skill → L4 CPlanner → CLI/SDK → 实验/验收,逐步推进每步带 pytest 验证。
 - **200+ 单测全绿**,标记策略 `needs_eda`(WSL2 工具) / `needs_llm`(真实 LLM key)。
-- **GLM-5.2 e2e 真跑通**:8 个注入 bug 全量实验,总体通过率 87.5%(7/8),分组最小通过率 50% ≥ 50% 门槛,bitwidth 类 2/2 all_pass ≥ 1 门槛 → **S1 硬门槛达标 + 良好门槛**(综合通过率 0.875)。
+- **GLM-5.2 e2e 真跑通**:8 个注入 bug 全量实验,总体通过率 87.5%(7/8),分组最小通过率 50% ≥ 50% 门槛,bitwidth 类 2/2 all_pass ≥ 1 门槛 → **S1 硬门槛达标 + 质量门槛**(综合通过率 0.875)。
 - **实验快照**:`runs/eval_snapshot/verdict.md` 汇总 T54 全量 8 bug 结果,聚合规则与通过率门槛见 [实验聚合通过率门槛 S1](docs/wiki/28_实验聚合通过率门槛S1.md)。
 - **失败案例透明化**:`tiny_fsm_comb` 与 `tiny_fsm_reset` 标注 `healable=false`(FSM 状态转移自动修复当前 MVP 可靠性不足),系统诚实记录边界。
 
@@ -277,7 +276,7 @@ python -c "from eda_agent import run_pipeline; from eda_agent.contracts import R
 
 ---
 
-## 11. 版本与联系
+## 10. 版本与联系
 
 - **契约版本**:`CONTRACT_VERSION = "0.1.0"`([CONTRACTS.md](CONTRACTS.md) 锚点,`contracts.py` 常量)。
 - **文档版本**:本 README 对齐 CONTRACTS.md v1.2 与 docs/wiki/ 深度页(zread 版本 id=2026-07-06-180551)。

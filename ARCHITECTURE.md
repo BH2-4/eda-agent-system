@@ -13,11 +13,10 @@
 - 背景:RTL 设计中的 bug 定位与修复高度依赖人工,本系统用 Agent 把 diagnose→patch→验证 串成可执行闭环。
 - 目标:给定带 bug 的 RTL + 测试激励,系统能自主发现、修复、验证,直到通过测试或耗尽预算,且每次实验可追溯。
 
-### 1.2 团队与时间
+### 1.2 阶段与环境
 
-- 团队:2 人核心(偏 AI/Agent/系统,数字前端 RTL 不熟)+ 1 人非技术(数据收集标注 / 实验记录整理 / 接口文档 / 演示材料)。
 - 阶段:Phase0 基座 → Phase1 三 Tool 封装 → Phase2 故障注入+provider → Phase3 A/B 组件 → Phase4 C+e2e。
-- 环境:Win11 + RTX3060 Laptop;EDA 工具跑 WSL2 Ubuntu(apt 装 yosys/iverilog,源码/conda 装 OpenSTA);agent 层 Python(本地,无需 GPU);LLM 主用 Claude API + provider 抽象预留国产模型(昇腾/壁仞/智子芯元)。
+- 环境:Windows + WSL2;EDA 工具跑 WSL2 Ubuntu(apt 装 yosys/iverilog,源码/conda 装 OpenSTA);agent 层 Python(本地,无需 GPU);LLM 默认智谱 GLM + provider 抽象预留多 provider 扩展(Claude/Qwen/DeepSeek)。
 
 ---
 
@@ -187,7 +186,7 @@
             logs_corpus/{raw/,corpus.jsonl} # A 的诊断语料
         runs/                               # 运行产物,gitignore
             <run_id>/ ...
-            eval_snapshot/                  # 预跑快照(评测机无工具时替代证据)
+            eval_snapshot/                  # 预跑快照(无 EDA 工具环境无工具时替代证据)
         scripts/
             build_corpus.py
             eval_diagnose.py
@@ -215,7 +214,7 @@
 
 ## 5. 系统集成(对外接口示例)
 
-### 5.1 CLI(Win11 PowerShell 或 WSL2 bash 均可)
+### 5.1 CLI(Windows PowerShell 或 WSL2 bash 均可)
 
     pip install -e .
     eda --help                      # 列出 self-heal / diagnose / report 三个子命令
@@ -348,11 +347,11 @@ Phase0 前置 gate:`yosys -V && iverilog -V && vvp -V && sta -version` 全部有
 
 - 产出:CPlanner per-process + LLM planner(主)+ rule planner(降级)+ 独立验证步 + CLI 三子命令 + e2e 串联。
 - 产出:experiment_manifest + experiment_summary 对比实验(baseline vs self_heal 多 run 轨迹)+ 文档对齐(三份组件文档与契约字段级互查)。
-- 产出:buffer + 演示材料整理 + 贡献者整理实验记录 + eval_snapshot 预跑。
+- 产出:示例整理 + 实验记录整理 + eval_snapshot 预跑。
 - 验证:
   - `pytest tests/test_e2e_pipeline.py -v -m needs_eda`(必过A 可执行性 + 必过B 修复效力至少 1 个 all_pass + 必过C 独立验证步)。
   - `scripts/summarize_eval.py` 产出 experiment_summary.json,min_group_pass_rate >= 0.50 且 bitwidth 类 >= 1 passed。
-  - 三份组件文档与契约字段级互查 checklist 全过(非技术成员执行)。
+  - 三份组件文档与契约字段级互查 checklist 全过(人工执行)。
 
 稳定化阶段:稳定性优化 + 可选扩展(OpenAICompat / MCP)按需补充。
 
@@ -367,8 +366,8 @@ Phase0 前置 gate:`yosys -V && iverilog -V && vvp -V && sta -version` 全部有
 | LLM tool_calls 幻觉 | 中 | 契约 §2.5 强制 registry.get 校验 + eda.tool_not_found 回灌 |
 | LLM patch 语法错率高 | 高 | diff 优先 + iverilog -t null 预检,坏 patch 不入栈;降级 full_rewrite;再降级 diagnose_only |
 | 预算被 B 独占 | 中 | 双层预算仲裁:C 调 B 前算 remaining 经 _remaining_budget_s 下传;B 内 min(self.budget_s, remaining);settings 给 B 480s 子预算 |
-| inject bug 可修性不可控 | 中 | 偏 AI 成员先写 8 个 bug + TB(非技术成员只标注);限定"人能 < 5 行 diff 修";healable=true 才进 50% 门槛集 |
-| 评测机无 EDA 工具 | 中 | needs_eda marker 评测时 skip;提交 runs/eval_snapshot/ 预跑快照 + experiment_manifest.json 截图作为替代证据 |
+| inject bug 可修性不可控 | 中 | 先写 8 个 bug + TB 并标注;限定"人能 < 5 行 diff 修";healable=true 才进 50% 门槛集 |
+| 无 EDA 工具环境无 EDA 工具 | 中 | needs_eda marker 评测时 skip;提交 runs/eval_snapshot/ 预跑快照 + experiment_manifest.json 截图作为替代证据 |
 | namespace/agentic 充分性被质疑 | 中 | planner_mode 默认 llm(ReAct);patch_source/convergence_cause/best_iter 入契约;C 独立验证步;主路径用 llm 模式 run |
 | 对比实验"自己 inject 自己修"被质疑 | 高 | baseline run 定义锁死(yosys+iverilog 不调 B);fault_manifest.json 记 ground_truth_patch + healable;experiment_summary.json 分组最小值 |
 | 指标全绿但诊断无用 | 中 | confidence 加饱和项 + contradiction;Top-1 加权三支总分 >= 0.6;严格/宽松命中率同报 |
@@ -383,12 +382,12 @@ Phase0 前置 gate:`yosys -V && iverilog -V && vvp -V && sta -version` 全部有
 2. [v1.2 已裁决] best_iter tie-break → 取最早达到 best_score 的轮。
 3. [v1.2 已裁决] experiment_manifest pass_rate 口径 → 分组最小值(均值作辅助)。
 4. [v1.2 已裁决] C 独立验证步 → MVP 必加。
-5. [v1.2 已裁决] inject bug 谁造 → 偏 AI 成员先写(非技术成员只标注)。
+5. [v1.2 已裁决] inject bug 谁造 → 先写 bug 再标注 healable 字段。
 6. [v1.2 已裁决] needs_rtl_patch 口径 → 按 severity 判。
 7. [开放] ErrorKB 持久化是否拆 seed/grown 两文件(A §12 #1)。
 8. [开放] Top-1 命中率是否引入 LLM-as-judge(A §12 #2,MVP 用关键词)。
 9. [开放] LLM planner 是否支持并行多 tool_calls(C §12 #2,MVP 取首)。
 10. [开放] MCP server 是否进 MVP(C §12 #5,默认可选扩展)。
-11. [开放] provider 切换对比实验是否后续做(可选,贴国产模型生态)。
+11. [开放] provider 切换对比实验是否后续做(可选,多 provider 扩展)。
 
 完整 open questions 清单见各组件文档 §12 + CONTRACTS.md §12 minor 列表。

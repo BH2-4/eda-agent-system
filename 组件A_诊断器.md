@@ -157,7 +157,7 @@ A 注册为 Tool(`skill_diagnose`),既可被 C(L4 Planner)直接调用,也可被
         regex: str                            # 匹配日志的正则(命名分组抽取行号/信号名)
         extractor: str                        # python 表达式或字段映射说明,描述如何从 match.groupdict() 填 ErrorItem
         fix_hint_template: str                # 修复建议模板,支持 {placeholder}
-        example_log: str                      # 一行真实日志样例(回放测试 + 给非技术成员对照)
+        example_log: str                      # 一行真实日志样例(回放测试 + 人工对照)
         source: Literal["seed","llm_curated","human"]   # 模式来源:种子/LLM 提议后人工确认/纯人工
         hit_count: int = 0                    # 命中次数(用于评测 ErrorKB 价值,可读不强制)
         added_at: str = ""                    # ISO8601,入库时间
@@ -224,8 +224,8 @@ A 注册为 Tool(`skill_diagnose`),既可被 C(L4 Planner)直接调用,也可被
 
     档位 1  seed         准备期人工写的种子模式(契约 §2.6 MVP 7 类对应种子)
     档位 2  llm_curated  LLM 在归因时发现新模式 → 写入 propose_pending/(json)
-                         非技术成员每天 review 一次,人工 confirm 后 source 改 human 并 add_case 入主库
-    档位 3  human        非技术成员从 runs/ 真实失败案例里手写模式(标注规范见 §5)
+                         每天 review 一次,人工 confirm 后 source 改 human 并 add_case 入主库
+    档位 3  human        从 runs/ 真实失败案例里手写模式(标注规范见 §5)
 
 伪代码(在 DiagnoseSkill.run 末尾):
 
@@ -236,7 +236,7 @@ A 注册为 Tool(`skill_diagnose`),既可被 C(L4 Planner)直接调用,也可被
             write_json(pending_dir / f"{uuid4().hex[:8]}.json", asdict(candidate))
             report.note += " [proposed new ErrorKB pattern, pending review]"
 
-人工 confirm 入库流程(非技术成员操作,文档化到 §9 步骤):
+人工 confirm 入库流程(文档化到 §9 步骤):
 
     1. 列出 propose_pending/*.json
     2. 对照 example_log 判断正则是否过宽/过窄
@@ -557,14 +557,13 @@ A 不调用 EDA 工具,但 ErrorKB 的 regex 要对齐这些工具的日志格�
 
 ---
 
-## 9. 实现步骤拆解(新终端可直接领任务)
+## 9. 实现步骤拆解
 
-每步带验证方法,完成即勾。建议两人并行:偏 AI 的人做步骤 1-3-5-7-9,偏系统的人做 2-4-6-8-10。
+每步带验证方法,完成即勾。
 
-### 步骤 1:搭骨架 dataclass(0.5 天)
-
+### 步骤 1:搭骨架 dataclass
 任务:在 `src/eda_agent/skills/diagnose.py` 写 §4 全部 dataclass(ErrorPattern / ErrorKB / DiagnosisReport)+ compute_confidence。
-依赖:`src/eda_agent/contracts.py`(契约 §2)必须先落地(由基座两人 Phase1 共做)。
+依赖:`src/eda_agent/contracts.py`(契约 §2)必须先落地(属 Phase1 基座)。
 验证方法:
 
     python -c "from eda_agent.skills.diagnose import DiagnosisReport; \
@@ -574,8 +573,7 @@ A 不调用 EDA 工具,但 ErrorKB 的 regex 要对齐这些工具的日志格�
         p = r.to_parsed(); assert p['_schema']['name']=='skill_diagnose'; \
         assert p['confidence']==0.5; print('ok')"
 
-### 步骤 2:写 ErrorKB + 持久化(0.5 天)
-
+### 步骤 2:写 ErrorKB + 持久化
 任务:实现 ErrorKB.load/save/lookup/add_case/suggest_from_llm。落 `data/error_kb.json` 种子文件(空 patterns 数组起步)。
 验证方法:
 
@@ -589,8 +587,7 @@ A 不调用 EDA 工具,但 ErrorKB 的 regex 要对齐这些工具的日志格�
     assert len(kb2.patterns) == 1
     print("ok")
 
-### 步骤 3:写种子 ErrorPattern 库(0.5 天,偏 AI 的人)
-
+### 步骤 3:写种子 ErrorPattern 库
 任务:对照契约 §2.6 MVP 7 类错误码,写至少 10 条种子 ErrorPattern(覆盖 synth/sim/sta 三 namespace)。每条 example_log 取自真实日志或第三人标注语料(§10 验收基线要求 20 条语料)。
 覆盖范围(必含):
 
@@ -613,18 +610,15 @@ A 不调用 EDA 工具,但 ErrorKB 的 regex 要对齐这些工具的日志格�
         assert re.search(p.regex, p.example_log), f"regex miss: {p.pid}"
     print("ok")
 
-### 步骤 4:写 RuleLayer(0.5 天,偏系统的人)
-
+### 步骤 4:写 RuleLayer
 任务:实现 `RuleLayer.match(log_text, tool) -> list[ErrorItem]`,内部调 ErrorKB.lookup + 步骤 6 的 _build_error_item。
 验证方法:用 5 条手工构造的日志喂 RuleLayer,断言产出的 ErrorItem 数量与 code 正确。写 `tests/test_diagnose_rule.py`(不需 needs_eda marker,纯字符串)。
 
-### 步骤 5:写 LLMAttributor(1 天,偏 AI 的人)
-
+### 步骤 5:写 LLMAttributor
 任务:实现 §6 末尾 prompt 构造 + JSON 解析 + 失败回退。prompt 放 `skills/prompts_diagnose.py`。强制 JSON schema 校验(jsonschema)。
 验证方法:用 mock LLMProvider(返回固定 JSON)跑通 attribute(),断言 root_cause/fix_hints 解析正确;再喂一个非法 JSON,断言回退到 "(LLM parse failed)"。
 
-### 步骤 6:写 DiagnoseSkill.run 主流程(1 天)
-
+### 步骤 6:写 DiagnoseSkill.run 主流程
 任务:拼装步骤 2-5 成 §6 主流程 + _collect_logs/_collect_evidence/_check_contradiction/_max_severity/_primary_tool/_infer_stage/_no_error_found_item/_fail/_dump_propose_pending 辅助方法。
 验证方法:构造 2 个 mock tool_result(一个 yosys 错、一个 iverilog 错),跑 DiagnoseSkill.run,断言:
 
@@ -634,13 +628,11 @@ A 不调用 EDA 工具,但 ErrorKB 的 regex 要对齐这些工具的日志格�
     len(SkillResult.artifacts) >= 2
     runs/<run_id>/diagnose/report.md 文件存在
 
-### 步骤 7:写 ReportWriter(0.5 天)
-
+### 步骤 7:写 ReportWriter
 任务:把 DiagnosisReport 渲染成人类可读 markdown(根因表 + 错误表 + fix_hints + evidence 引用)。模板用纯字符串拼接,不引 jinja2。
 验证方法:`cat runs/<run_id>/diagnose/report.md`,人眼可读,含 root_cause / 每个 ErrorItem / fix_hints 三段。
 
-### 步骤 8:注册进 Registry + as_tool 适配(0.5 天,偏系统的人)
-
+### 步骤 8:注册进 Registry + as_tool 适配
 任务:在 `tools/bootstrap.py` 的 `build_registry(provider, runner, settings)`(import 路径 `eda_agent.tools.bootstrap`)加一行 `registry.register(ToolEntry(tool=DiagnoseSkill(kb, provider, runner, settings).as_tool(), name="skill_diagnose", category="skill", parsed_schema_ref={"name":"skill_diagnose","version":"0.1.0"}))`。验证 as_tool 后 ToolResult.parsed 含 _skill_status/_iterations/_trajectory。
 验证方法:
 
@@ -653,25 +645,23 @@ A 不调用 EDA 工具,但 ErrorKB 的 regex 要对齐这些工具的日志格�
     assert tr.parsed["_iterations"] == 1
     print("ok")
 
-### 步骤 9:语料 schema + 标注工具(0.5 天,偏 AI 的人 + 非技术成员协作)
-
-任务:定义 §10.1 语料 schema,写 `scripts/build_corpus.py` 把 data/logs_corpus/ 散日志组装成 corpus.jsonl + 标注。给非技术成员一份标注 SOP(§10.2)。
+### 步骤 9:语料 schema + 标注工具
+任务:定义 §10.1 语料 schema,写 `scripts/build_corpus.py` 把 data/logs_corpus/ 散日志组装成 corpus.jsonl + 标注。附标注 SOP(§10.2)。
 验证方法:跑 build_corpus,产出 data/logs_corpus/corpus.jsonl,行数 >= 20。
 
-### 步骤 10:验收脚本 + 单测(0.5 天)
-
+### 步骤 10:验收脚本 + 单测
 任务:写 §10 的验收脚本 `scripts/eval_diagnose.py` + `tests/test_diagnose_skill.py`(覆盖接口单测 + ErrorKB 增长用例 + 语料 Top-1 命中率)。
 验证方法:照 §10 门槛逐条跑,全绿。
 
-总计:约 5-6 人天(2 人并行约 3 天,契合约 Phase3 单日交付 + Phase4 联调)。
+以上步骤对应 Phase3 实现 + Phase4 联调。
 
 ---
 
 ## 10. 验收标准(量化指标 + 门槛 + 测试方法)
 
-> 全部可被直接照搬执行。命令里的 <...> 占位由验收者填实际路径。
+> 全部可被直接照搬执行。命令里的 <...> 占位由评审方填实际路径。
 
-### 10.1 语料 schema 与标注规范(给非技术成员)
+### 10.1 语料 schema 与标注规范
 
 语料目录:
 
@@ -720,16 +710,16 @@ corpus.jsonl 每行 schema(JSON;**禁止 // 注释**,枚举值在 schema 外用�
         - annotator:标注人(溯源)
         - difficulty:难度(影响分桶度量)
 
-标注 SOP(非技术成员照做):
+标注 SOP:
 
-    1. 收集日志:从本组 runs/ 失败案例复制 stdout.full.log;或从 yosys/iverilog GitHub issue 抄代表性片段。每条 50-500 行为宜。
+    1. 收集日志:从本项目 runs/ 失败案例复制 stdout.full.log;或从 yosys/iverilog GitHub issue 抄代表性片段。每条 50-500 行为宜。
     2. 标 expected_errors:看日志里 ERROR/WARNING 行,对照 ErrorKB 的 example_log 找匹配模式,抄 error_code。若日志反映的错误 ErrorKB 没覆盖,标 error_code="diagnose.no_error_found" 并标 difficulty=hard(留给规则层/LLM 层成长)。
     3. 标 expected_root_cause:用一句话写"为什么会这样"(人类判断)。
     4. 标 expected_fix_hint_contains:写一个子串,A 的 fix_hints 任一条命中即算对。
     5. 跑 `python scripts/build_corpus.py --in data/logs_corpus/raw --out data/logs_corpus/corpus.jsonl` 自动校验 schema。
     6. 目标:>= 30 条语料,synth/sim/sta 三类至少各 5 条,hard 类至少 3 条(保证失败案例度量有样本)。
        easy:medium:hard ≈ 9:15:6。
-    7. 抽检一致性:偏 AI 成员抽检 20%,一致性 >= 0.8 才算语料合格(不一致条目剔除并补足)。
+    7. 抽检一致性:抽检 20%,一致性 >= 0.8 才算语料合格(不一致条目剔除并补足)。
 
 ### 10.2 量化指标与门槛(v1.2,消除"指标全绿但诊断无用"的验收空洞)
 
@@ -785,7 +775,7 @@ C. ErrorKB 增长用例(手动):
     python -c "import json; kb=json.load(open('data/error_kb.json')); \
                print(len(kb['patterns']))"
 
-D. 契约对齐自检(交付前,非技术成员执行):
+D. 契约对齐自检(发布前执行):
 
     对照契约 §2.2 v1.2 skill_diagnose.parsed 字段(13 字段强制集,含 _schema),逐字段核 DiagnosisReport.to_parsed() 输出。
     对照契约 §2.6,核 A 产出的 ErrorItem 字段完整性(code/namespace/tool/severity/message/evidence/fix_suggestion)。
@@ -803,19 +793,19 @@ D. 契约对齐自检(交付前,非技术成员执行):
                                                   标准文本(契约 §6 LLMResponse.text 兜底)
     R2 ErrorKB 正则过宽误命中              中      add_case 时强制带 example_log 自检(步骤 3);
                                                   eval 脚本统计 false_positive,门槛设 <= 10%
-    R3 语料不足 20 条                      高      准备期非技术成员优先采集;不够则用 synthetic
+    R3 语料不足 20 条                      高      优先采集真实语料;不够则用 synthetic
                                                   (按 ErrorKB example_log 反推日志),但标注 source
     R4 LLM 调用慢/超预算                   中      budget_s 硬约束;LLMAttributor 设 deadline 检查;
                                                   超时回退纯规则层(used_layers="rule")
     R5 规则层与 LLM 层 root_cause 矛盾     低      has_contradiction 触发 confidence 下调(§4.5);
                                                   report.md 标注 [CONTRADICTION] 供人工 review
-    R6 propose_pending 堆积无人 review     中      Phase4 任务:非技术成员集中 review;CI 加断言
+    R6 propose_pending 堆积无人 review     中      Phase4 任务:集中 review;CI 加断言
                                                   propose_pending/ 文件数 <= 阈值(如 10),超了告警
     R7 日志裁剪丢证据(.full.log 未生成)  中      A 读证据时先 assert os.path.exists(.full.log);
                                                   不存在则 fallback 到 ToolResult.stdout + 标 evidence_incomplete
     R8 错误码漂移(上游 Tool 改日志格式)   中      ErrorKB.version + parsed_schema_ref 做版本锚点;
                                                   CI 跑 RuleLayer 回放测试(每条 example_log 必命中)
-    R9 国产模型 provider 切换后正则失效     低      ErrorKB 与 provider 解耦(规则层零 LLM);
+    R9 多 provider 切换后正则失效     低      ErrorKB 与 provider 解耦(规则层零 LLM);
                                                   LLM 层失败回退规则层,不依赖具体 provider
 
 ---
@@ -828,13 +818,13 @@ D. 契约对齐自检(交付前,非技术成员执行):
 
 3. **A 是否要产"patch 草稿"**:当前 fix_hints 是文字建议,B 自己拿去让 LLM 出 patch。是否让 A 直接产 patch 草稿(diff 片段)给 B?风险:边界模糊,A 越界到 B 的职责。倾向:不产,A 只给 fix_hints,B 决定 patch 形态(契约 §2.3 patch_source 由 B 填)。
 
-4. **corpus.jsonl 的 ground_truth 标注质量门槛**:非技术成员标注,可能不准。是否要偏 AI 的人抽检 20%?抽检不一致的条目如何处理(剔除/重标/降权)?倾向:抽检 20%,不一致剔除,语料数从 20 起步逐步补到 30。
+4. **corpus.jsonl 的 ground_truth 标注质量门槛**:人工标注,可能不准。是否要抽检 20%?抽检不一致的条目如何处理(剔除/重标/降权)?倾向:抽检 20%,不一致剔除,语料数从 20 起步逐步补到 30。
 
 5. **diagnose namespace 是否进契约正文**:[v1.2 已关闭] 契约 §2.6 namespace 表已正式登记 `diagnose`,A §5.4 措辞改为"已登记于契约 §2.6"。
 
 6. **A 被 B 调用时的预算切分**:B 每轮迭代都要调 A。max_iter=5 意味着最多 5 次 A 调用。run_budget_s=600(契约 §6)下,A 每次预算 60s 是否够?是否要 A 在被 B 调用时降到 30s?倾向:A.budget_s 固定 60s,由 B 通过 remaining_budget_s 仲裁(契约 §2.3 双层预算),A 不感知调用方。
 
-7. **propose_pending 的 review 责任人**:非技术成员 review LLM 提议的正则,但正则质量偏技术。是否要偏系统的人二次复核?倾向:非技术成员做第一道(看 example_log 是否合理),偏系统的人做第二道(看正则是否过宽),两道都过才 add_case。
+7. **propose_pending 的 review 责任人**:review LLM 提议的正则,但正则质量偏技术。是否要二次复核?倾向:第一道看 example_log 是否合理,第二道看正则是否过宽,两道都过才 add_case。
 
 ---
 

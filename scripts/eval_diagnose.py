@@ -59,7 +59,7 @@ _THR = {
     "A11_hard": 3,
 }
 
-# 良好线(及格 + 0.10 margin;用户要求"靠近及格线的指标超过及格线更多"留 buffer)
+# 质量门槛(通过线 + 0.10 margin;用户要求"靠近通过线的指标超过通过线更多"留 buffer)
 _THR_GOOD = {
     "A1_top1_weighted": 0.70,
     "A2_rule_coverage": 0.60,
@@ -249,7 +249,7 @@ def _diagnose_one(
                 evidence.append(ev)
                 seen.add(ev)
         # 加 message(根因描述)作证据:规则命中样本有 regex 命中+根因文本+日志行,
-        # evidence>=3 → confidence>=0.8(对齐 A4 良好线;compute_confidence=0.5+0.1*min(ev,5))
+        # evidence>=3 → confidence>=0.8(对齐 A4 质量门槛;compute_confidence=0.5+0.1*min(ev,5))
         if e.message and e.message not in seen:
             evidence.append(e.message)
             seen.add(e.message)
@@ -473,7 +473,7 @@ def _eval(
     if with_llm and a3 is not None and a3 < _THR["A3_llm_conf_mean"]:
         failed_checks.append("A3_llm_conf_mean")
 
-    # 良好线判定(及格 + 0.10 margin;达良好线才视为质量达标可持续推进)
+    # 质量门槛判定(及格 + 0.10 margin;达质量门槛才视为质量达标可持续推进)
     good_failed: list[str] = []
     if a1_top1 < _THR_GOOD["A1_top1_weighted"]:
         good_failed.append("A1_top1_weighted")

@@ -105,7 +105,7 @@ Sources: [error_kb.json](../../data/error_kb.json#L1-L149), [diagnose.py](../../
 
 ### KB 增长机制：三档来源管控
 
-ErrorKB 设计了严格的三档增长机制，在"可积累"与"防 LLM 噪声污染"之间取得平衡。种子模式（`source="seed"`）由开发期人工编写，是初始覆盖的基线；LLM 提议模式（`source="llm_curated"`）在 LLM 归因过程中，如果 LLM 返回了 `new_pattern` 字段，会被构造成 `ErrorPattern` 对象写入 `runs/<run_id>/diagnose/propose_pending/<uuid8>.json`，**不自动入库**；人工确认模式（`source="human"`）由非技术成员 review propose_pending 目录后确认入库，走 `add_case` 写回主库。
+ErrorKB 设计了严格的三档增长机制，在"可积累"与"防 LLM 噪声污染"之间取得平衡。种子模式（`source="seed"`）由开发期人工编写，是初始覆盖的基线；LLM 提议模式（`source="llm_curated"`）在 LLM 归因过程中，如果 LLM 返回了 `new_pattern` 字段，会被构造成 `ErrorPattern` 对象写入 `runs/<run_id>/diagnose/propose_pending/<uuid8>.json`，**不自动入库**；人工确认模式（`source="human"`）由人工 review propose_pending 目录后确认入库，走 `add_case` 写回主库。
 
 LLM 提议构造 `ErrorPattern` 时，pid 使用 `hashlib.sha256` 而非 Python 内置 `hash()`，因为 `hash()` 受 `PYTHONHASHSEED` 随机化影响，跨 run 不可比，违反契约 §2.6 的"跨 run 可比"语义要求。`suggest_from_llm` 方法仅构造对象，不自动入库——任何字段缺失（regex / error_code / fix_hint_template 任一为空）时返回 `None`。
 

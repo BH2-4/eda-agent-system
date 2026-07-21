@@ -106,7 +106,7 @@ def test_real_synth_counter(tmp_path: Path) -> None:
     rtl_path = tmp_path / "counter.v"
     rtl_path.write_text(COUNTER_V, encoding="utf-8")
 
-    settings = Settings()  # 默认 wsl_enabled=True,适配 Win11 主机
+    settings = Settings()  # 默认 wsl_enabled=True,适配 Windows 主机
     tool = YosysSynthTool(settings)
     call = ToolCall(
         name="yosys_synth",

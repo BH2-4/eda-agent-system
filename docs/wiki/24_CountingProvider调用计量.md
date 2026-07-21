@@ -8,7 +8,7 @@
 |------|------|
 | 每个 provider（Claude/GLM）各自在 `chat()` 里自增计数器 | 逻辑重复，新加 provider 极易遗漏，违反开闭原则 |
 | CPlanner 在每次调用 `llm.chat()` 前后手动计数 | 调用点分散在 ReAct 回环、B 自修复迭代、A 诊断 LLM 归因等多处，极易漏算 |
-| 用 AOP/monkey-patch 拦截 `chat()` | 隐式性强，调试困难，不适合 2 人团队 |
+| 用 AOP/monkey-patch 拦截 `chat()` | 隐式性强，调试困难，不适合小型团队 |
 
 `CountingProvider` 选择的是**装饰器模式**——它在 `make_provider()` 工厂里被强制套在每个真实 provider 外层，所有业务代码拿到的 `LLMProvider` 实例实际上就是一个 `CountingProvider`。业务代码无感知，计数自动发生。
 
